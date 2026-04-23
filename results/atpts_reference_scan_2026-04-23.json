@@ -1,0 +1,180 @@
+{
+  "date": "2026-04-23",
+  "source_atpts_dir": "C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS",
+  "parameters": {
+    "seeds": "7,19,29",
+    "max_evaluations": 20000,
+    "max_iterations": 200000,
+    "neighborhood_size": 50
+  },
+  "scanned_instances": 12,
+  "improved_instances": 5,
+  "batches": [
+    {
+      "file": "C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\batch_a_improvement_summary.json",
+      "instances": [
+        "4_ChambersBarnes_10_workers",
+        "5_Kacem_3_workers",
+        "5_Kacem_4_workers",
+        "6_Fattahi_14_workers",
+        "6_Fattahi_20_workers"
+      ],
+      "improved_instances": [
+        "6_Fattahi_14_workers",
+        "6_Fattahi_20_workers"
+      ]
+    },
+    {
+      "file": "C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\batch_b1_improvement_summary.json",
+      "instances": [
+        "1_Brandimarte_7_workers",
+        "1_Brandimarte_12_workers",
+        "1_Brandimarte_14_workers"
+      ],
+      "improved_instances": []
+    },
+    {
+      "file": "C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\batch_b2a_improvement_summary.json",
+      "instances": [
+        "3_DPpaulli_1_workers",
+        "3_DPpaulli_9_workers"
+      ],
+      "improved_instances": [
+        "3_DPpaulli_9_workers"
+      ]
+    },
+    {
+      "file": "C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\batch_b2b_improvement_summary.json",
+      "instances": [
+        "3_DPpaulli_15_workers",
+        "3_DPpaulli_18_workers"
+      ],
+      "improved_instances": [
+        "3_DPpaulli_15_workers",
+        "3_DPpaulli_18_workers"
+      ]
+    }
+  ],
+  "improvements": [
+    {
+      "instance": "6_Fattahi_14_workers",
+      "baseline_best": 546,
+      "improved_best": 543,
+      "improved": true,
+      "seeds": [
+        {
+          "seed": 7,
+          "makespan": 543,
+          "evaluations_to_best": 147
+        },
+        {
+          "seed": 19,
+          "makespan": 543,
+          "evaluations_to_best": 228
+        },
+        {
+          "seed": 29,
+          "makespan": 543,
+          "evaluations_to_best": 87
+        }
+      ],
+      "replaced_row_index": 281
+    },
+    {
+      "instance": "6_Fattahi_20_workers",
+      "baseline_best": 1155,
+      "improved_best": 1153,
+      "improved": true,
+      "seeds": [
+        {
+          "seed": 7,
+          "makespan": 1155,
+          "evaluations_to_best": 0
+        },
+        {
+          "seed": 19,
+          "makespan": 1153,
+          "evaluations_to_best": 5216
+        },
+        {
+          "seed": 29,
+          "makespan": 1155,
+          "evaluations_to_best": 0
+        }
+      ],
+      "replaced_row_index": 295
+    },
+    {
+      "instance": "3_DPpaulli_9_workers",
+      "baseline_best": 2087,
+      "improved_best": 2077,
+      "improved": true,
+      "seeds": [
+        {
+          "seed": 7,
+          "makespan": 2077,
+          "evaluations_to_best": 2767
+        },
+        {
+          "seed": 19,
+          "makespan": 2087,
+          "evaluations_to_best": 0
+        },
+        {
+          "seed": 29,
+          "makespan": 2083,
+          "evaluations_to_best": 721
+        }
+      ],
+      "replaced_row_index": 225
+    },
+    {
+      "instance": "3_DPpaulli_15_workers",
+      "baseline_best": 2213,
+      "improved_best": 2204,
+      "improved": true,
+      "seeds": [
+        {
+          "seed": 7,
+          "makespan": 2204,
+          "evaluations_to_best": 2306
+        },
+        {
+          "seed": 19,
+          "makespan": 2212,
+          "evaluations_to_best": 372
+        },
+        {
+          "seed": 29,
+          "makespan": 2212,
+          "evaluations_to_best": 109
+        }
+      ],
+      "replaced_row_index": 233
+    },
+    {
+      "instance": "3_DPpaulli_18_workers",
+      "baseline_best": 2215,
+      "improved_best": 2207,
+      "improved": true,
+      "seeds": [
+        {
+          "seed": 7,
+          "makespan": 2213,
+          "evaluations_to_best": 12
+        },
+        {
+          "seed": 19,
+          "makespan": 2214,
+          "evaluations_to_best": 685
+        },
+        {
+          "seed": 29,
+          "makespan": 2207,
+          "evaluations_to_best": 2262
+        }
+      ],
+      "replaced_row_index": 240
+    }
+  ]
+}

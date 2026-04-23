@@ -11,6 +11,9 @@ reference Scenario 1 ATPTS submission under
   - Writes an improved submission CSV plus a JSON summary.
 - `improve_atpts_reference.py`
   - Warm-starts from the external per-run JSON files in `submission_results/`.
+- `batch_scan_reference_csv.py`
+  - Runs `improve_submission_from_baseline.py` in manageable batches and collates the summaries.
+  - Useful because a full 30-instance sweep in one process timed out in this workspace, while 3 to 5 instances per batch completed reliably.
 
 ## Verified Command
 
