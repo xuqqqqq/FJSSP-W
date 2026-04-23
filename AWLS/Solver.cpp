@@ -1,6 +1,39 @@
 ﻿#include "Solver.h"
 #include <chrono>
 #include "DebugTrace.h"
+#include <utility>
+
+namespace
+{
+int construction_sample_count(const Instance& instance)
+{
+    if (!instance.has_worker_flexibility)
+    {
+        return 1;
+    }
+    if (instance.job_num <= 2 && instance.machine_num <= 2)
+    {
+        return 4;
+    }
+    return 1;
+}
+
+Schedule sample_best_construction(const Instance& instance,
+    const std::shared_ptr<OperationList>& operation_list,
+    const int sample_count)
+{
+    Schedule best_schedule(instance, operation_list);
+    for (int i = 1; i < sample_count; ++i)
+    {
+        Schedule candidate(instance, operation_list);
+        if (candidate.get_makespan() < best_schedule.get_makespan())
+        {
+            best_schedule = std::move(candidate);
+        }
+    }
+    return best_schedule;
+}
+}
 
 // ��̬ԭ�ӱ��������ڿ����㷨ִ�е�ֹͣ��־
 std::atomic<bool> Solver::stop_flag{false};
@@ -22,11 +55,7 @@ void Solver::initialize_population(const Instance& instance, std::shared_ptr<Ope
     operation_list = std::make_shared<OperationList>(instance);
     // ������Ⱥ��СΪ1
     population.resize(1);
-    // Ϊÿ�����崴�������ʼ����
-    for (auto& sched : population)
-    {
-        sched = Schedule(instance, operation_list);
-    }
+    population[0] = sample_best_construction(instance, operation_list, construction_sample_count(instance));
 }
 
 

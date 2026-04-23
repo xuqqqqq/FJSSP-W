@@ -20,7 +20,8 @@ constexpr bool kEnableMiddleBlockMoves = false;
 constexpr bool kEnableTwoBlockBackMove = false;
 constexpr bool kEnableBackToFrontMoves = false;
 constexpr bool kEnablePrefixFrontMoves = true;
-constexpr bool kEnableFrontToBackMoves = true;
+constexpr bool kEnableFrontToBackMoves = false;
+constexpr unsigned long long kMaxTabuIterationsPerPass = 5000;
 
 bool validate_machine_graph(const Graph& graph, int makespan, const char* phase)
 {
@@ -187,7 +188,7 @@ void TabuSearch::search(const Schedule& schedule, const std::atomic<bool>& stop_
     validate_machine_graph_or_exit(current_schedule.graph, current_schedule.get_makespan(), "search_start");
     Schedule prev_schedule;
     iteration = 0;
-    while (iteration < 10000)
+    while (iteration < kMaxTabuIterationsPerPass)
     {
         if (iteration < 5 || iteration % 500 == 0)
         {
@@ -199,7 +200,7 @@ void TabuSearch::search(const Schedule& schedule, const std::atomic<bool>& stop_
         if (move.which == 0)
         {
             awls_trace::log("TabuSearch::search empty move iteration=", iteration);
-            continue;
+            break;
         }
         if (iteration < 5 || iteration % 500 == 0)
         {
@@ -358,7 +359,7 @@ NeighborhoodMove TabuSearch::find_move()
     std::vector<NeighborhoodMove> best_moves;
     bool find_all = false;
     int min_makespan = INT_MAX;
-    do
+    while (true)
     {
         if (!find_all)
             update_critical_block();
@@ -648,16 +649,19 @@ NeighborhoodMove TabuSearch::find_move()
                 }
             }
         }
-        if (find_all && all_moves.empty())
+        if (all_moves.empty())
         {
-            // û�кϷ���������
-            // ����
-            std::clog << "Final solution: " << current_schedule.get_makespan() << std::endl;
-            current_schedule.output();
-            exit(0);
+            if (find_all)
+            {
+                awls_trace::log("TabuSearch::find_move no admissible move after full scan current=",
+                    current_schedule.get_makespan());
+                return {};
+            }
+            find_all = true;
+            continue;
         }
-        find_all = true;
-    } while (all_moves.empty());
+        break;
+    }
 
 
     if (best_moves.empty())
