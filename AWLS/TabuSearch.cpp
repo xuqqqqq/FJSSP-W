@@ -6,9 +6,128 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <cstdlib>
+#include <sstream>
 #include <set>
 #include "RandomGenerator.h"
 #include "Schedule.h"
+#include "DebugTrace.h"
+
+namespace
+{
+constexpr bool kEnableAdaptiveWeightUpdate = false;
+constexpr bool kEnableMiddleBlockMoves = false;
+constexpr bool kEnableTwoBlockBackMove = false;
+constexpr bool kEnableBackToFrontMoves = false;
+constexpr bool kEnablePrefixFrontMoves = true;
+constexpr bool kEnableFrontToBackMoves = true;
+
+bool validate_machine_graph(const Graph& graph, int makespan, const char* phase)
+{
+    if (!awls_trace::enabled())
+    {
+        return true;
+    }
+
+    const int node_num = graph.node_num;
+    const int machine_num = static_cast<int>(graph.first_machine_operation.size());
+    auto fail = [&](const char* reason, int a = -1, int b = -1, int c = -1) {
+        awls_trace::log("GRAPH_INVALID phase=", phase, " reason=", reason,
+            " a=", a, " b=", b, " c=", c,
+            " node_num=", node_num, " makespan=", makespan);
+        return false;
+    };
+
+    if (graph.machine_successor.size() != static_cast<size_t>(node_num) ||
+        graph.machine_predecessor.size() != static_cast<size_t>(node_num) ||
+        graph.on_machine.size() != static_cast<size_t>(node_num))
+    {
+        return fail("vector_size_mismatch");
+    }
+
+    for (int op = 1; op < node_num - 1; ++op)
+    {
+        const int machine_id = graph.on_machine[op];
+        if (machine_id < 0 || machine_id >= machine_num)
+        {
+            return fail("op_machine_out_of_range", op, machine_id, machine_num);
+        }
+
+        const int pred = graph.machine_predecessor[op];
+        const int succ = graph.machine_successor[op];
+        if (pred != -1)
+        {
+            if (pred <= 0 || pred >= node_num - 1)
+            {
+                return fail("pred_out_of_range", op, pred);
+            }
+            if (graph.machine_successor[pred] != op)
+            {
+                return fail("pred_succ_mismatch", op, pred, graph.machine_successor[pred]);
+            }
+            if (graph.on_machine[pred] != machine_id)
+            {
+                return fail("pred_machine_mismatch", op, pred, machine_id);
+            }
+        }
+        if (succ != -1)
+        {
+            if (succ <= 0 || succ >= node_num - 1)
+            {
+                return fail("succ_out_of_range", op, succ);
+            }
+            if (graph.machine_predecessor[succ] != op)
+            {
+                return fail("succ_pred_mismatch", op, succ, graph.machine_predecessor[succ]);
+            }
+            if (graph.on_machine[succ] != machine_id)
+            {
+                return fail("succ_machine_mismatch", op, succ, machine_id);
+            }
+        }
+    }
+
+    std::vector<int> seen(node_num, 0);
+    for (int machine_id = 0; machine_id < machine_num; ++machine_id)
+    {
+        int count = 0;
+        for (int op = graph.first_machine_operation[machine_id]; op != -1; op = graph.machine_successor[op])
+        {
+            if (op <= 0 || op >= node_num - 1)
+            {
+                return fail("chain_op_out_of_range", machine_id, op);
+            }
+            if (++seen[op] > 1)
+            {
+                return fail("chain_duplicate_or_cycle", machine_id, op, seen[op]);
+            }
+            if (graph.on_machine[op] != machine_id)
+            {
+                return fail("chain_machine_mismatch", machine_id, op, graph.on_machine[op]);
+            }
+            if (++count > node_num)
+            {
+                return fail("chain_too_long", machine_id, count);
+            }
+        }
+        if (machine_id < static_cast<int>(graph.machine_operation_count.size()) &&
+            graph.machine_operation_count[machine_id] != count)
+        {
+            return fail("machine_count_mismatch", machine_id, count, graph.machine_operation_count[machine_id]);
+        }
+    }
+
+    return true;
+}
+
+void validate_machine_graph_or_exit(const Graph& graph, int makespan, const char* phase)
+{
+    if (!validate_machine_graph(graph, makespan, phase))
+    {
+        std::exit(86);
+    }
+}
+}
 
 // weight update (per-op) Algorithm 3 - �޸��������Ϳ��м��������߼�
 // �޸ĺ��UpdateWeight_per_op����
@@ -62,19 +181,78 @@ void UpdateWeight_per_op(std::vector<Operation>& operations,
 
 void TabuSearch::search(const Schedule& schedule, const std::atomic<bool>& stop_flag)
 {
+    awls_trace::log("TabuSearch::search start makespan=", schedule.get_makespan());
     current_schedule = schedule;
     best_schedule = schedule;
+    validate_machine_graph_or_exit(current_schedule.graph, current_schedule.get_makespan(), "search_start");
     Schedule prev_schedule;
     iteration = 0;
     while (iteration < 10000)
     {
+        if (iteration < 5 || iteration % 500 == 0)
+        {
+            awls_trace::log("TabuSearch::search iteration=", iteration,
+                " current=", current_schedule.get_makespan(),
+                " best=", best_schedule.get_makespan());
+        }
         auto move = find_move();
         if (move.which == 0)
         {
+            awls_trace::log("TabuSearch::search empty move iteration=", iteration);
             continue;
+        }
+        if (iteration < 5 || iteration % 500 == 0)
+        {
+            awls_trace::log("TabuSearch::search picked move iteration=", iteration,
+                " method=", static_cast<int>(move.method),
+                " which=", move.which,
+                " where=", move.where);
         }
         prev_schedule = current_schedule;
         make_move(move);
+        validate_machine_graph_or_exit(current_schedule.graph, current_schedule.get_makespan(), "after_make_move");
+        if (iteration < 5 || iteration % 500 == 0)
+        {
+            awls_trace::log("TabuSearch::search after make_move iteration=", iteration,
+                " current=", current_schedule.get_makespan(),
+                " best=", best_schedule.get_makespan());
+        }
+        if (iteration < 5 && awls_trace::enabled())
+        {
+            for (int machine_id = 0; machine_id < static_cast<int>(current_schedule.graph.first_machine_operation.size()); ++machine_id)
+            {
+                std::ostringstream oss;
+                oss << "TabuSearch::search machine_chain iteration=" << iteration
+                    << " machine=" << machine_id << " chain=";
+                int guard = 0;
+                for (int op = current_schedule.graph.first_machine_operation[machine_id];
+                    op != -1 && guard < current_schedule.graph.node_num + 2;
+                    op = current_schedule.graph.machine_successor[op], ++guard)
+                {
+                    if (guard > 0)
+                    {
+                        oss << "->";
+                    }
+                    oss << op;
+                }
+                if (guard >= current_schedule.graph.node_num + 2)
+                {
+                    oss << "->...";
+                }
+                awls_trace::log(oss.str());
+            }
+            for (int op = 1; op < current_schedule.graph.node_num - 1; ++op)
+            {
+                awls_trace::log("TabuSearch::search op_state iteration=", iteration,
+                    " op=", op,
+                    " machine=", current_schedule.graph.on_machine[op],
+                    " mp=", current_schedule.graph.machine_predecessor[op],
+                    " ms=", current_schedule.graph.machine_successor[op],
+                    " js=", current_schedule.graph.job_successor[op],
+                    " start=", current_schedule.time_info[op].forward_path_length,
+                    " end=", current_schedule.time_info[op].end_time);
+            }
+        }
          // ��ȡ�ؼ�·������
         std::vector<int> critical_ops;
         for (int i = 1; i < current_schedule.graph.node_num - 1; ++i) {
@@ -84,15 +262,18 @@ void TabuSearch::search(const Schedule& schedule, const std::atomic<bool>& stop_
         }
         
         // ���±��ƶ�������Ȩ�غͿ��м���
-        UpdateWeight_per_op(current_schedule.operation_list->operations, 
-                           move.which, 
-                           critical_ops,
-                           best_schedule.makespan,  // fStar - ��ʷ����makespan
-                           prev_schedule.makespan,  // fPrev - ǰһ�����makespan  
-                           current_schedule.makespan, // fCurr - ��ǰ���makespan
-                           Schedule::beta, 
-                           Schedule::gamma, 
-                           Schedule::theta);
+        if (kEnableAdaptiveWeightUpdate)
+        {
+            UpdateWeight_per_op(current_schedule.operation_list->operations,
+                move.which,
+                critical_ops,
+                best_schedule.makespan,  // fStar - ��ʷ����makespan
+                prev_schedule.makespan,  // fPrev - ǰһ�����makespan
+                current_schedule.makespan, // fCurr - ��ǰ���makespan
+                Schedule::beta,
+                Schedule::gamma,
+                Schedule::theta);
+        }
         
         
 
@@ -118,6 +299,8 @@ void TabuSearch::search(const Schedule& schedule, const std::atomic<bool>& stop_
 #endif
         iteration++;
     }
+    awls_trace::log("TabuSearch::search finish best=", best_schedule.get_makespan(),
+        " iterations=", iteration);
 }
 
 void TabuSearch::change_machine_evaluate_and_push(const Schedule& schedule, const NeighborhoodMove& move,
@@ -170,6 +353,7 @@ void TabuSearch::same_machine_evaluate_and_push(const Schedule& schedule, const 
 
 NeighborhoodMove TabuSearch::find_move()
 {
+    awls_trace::log("TabuSearch::find_move begin current=", current_schedule.get_makespan());
     std::vector<NeighborhoodMove> all_moves;
     std::vector<NeighborhoodMove> best_moves;
     bool find_all = false;
@@ -180,11 +364,27 @@ NeighborhoodMove TabuSearch::find_move()
             update_critical_block();
         else
             update_all_critical_block();
+        awls_trace::log("TabuSearch::find_move blocks=", critical_blocks.size(),
+            " find_all=", find_all ? 1 : 0);
         for (const auto& block : critical_blocks)
         {
             if (block.empty())
             {
                 continue;
+            }
+            if (awls_trace::enabled())
+            {
+                std::ostringstream oss;
+                oss << "TabuSearch::find_move block=";
+                for (size_t i = 0; i < block.size(); ++i)
+                {
+                    if (i > 0)
+                    {
+                        oss << ",";
+                    }
+                    oss << block[i];
+                }
+                awls_trace::log(oss.str());
             }
             for (int i = 0; i < block.size(); i++)
             {
@@ -200,36 +400,43 @@ NeighborhoodMove TabuSearch::find_move()
                 }
 
                 for (int cur_op = current_schedule.graph.first_machine_operation[machine_id];
-                    cur_op != -1 && cur_op != block.front();
+                    cur_op != -1 && cur_op != block.front() && kEnablePrefixFrontMoves;
                     cur_op = current_schedule.graph.machine_successor[cur_op])
                 {
                     NeighborhoodMove move{ Method::FRONT, op, cur_op };
+                    awls_trace::log("TabuSearch::find_move eval FRONT which=", move.which, " where=", move.where);
                     same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                    awls_trace::log("TabuSearch::find_move eval FRONT done which=", move.which, " where=", move.where);
                 }
 
 
                 for (int cur_op = current_schedule.graph.machine_successor[block.back()]; cur_op != -1; cur_op = current_schedule.graph.machine_successor[cur_op])
                 {
                     NeighborhoodMove move{ Method::BACK, op, cur_op };
+                    awls_trace::log("TabuSearch::find_move eval BACK which=", move.which, " where=", move.where);
                     same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                    awls_trace::log("TabuSearch::find_move eval BACK done which=", move.which, " where=", move.where);
                 }
             }
 
             if (const int n = static_cast<int>(block.size()); n == 2)
             {
                 // ����ؼ���Ĵ�СΪ2����������ֻ��һ��
-                if (block[0] > 0 && block[0] < current_schedule.graph.node_num - 1 &&
+                if (kEnableTwoBlockBackMove &&
+                    block[0] > 0 && block[0] < current_schedule.graph.node_num - 1 &&
                     block[1] > 0 && block[1] < current_schedule.graph.node_num - 1)
                 {
                     NeighborhoodMove move{ Method::BACK, block[0], block[1] };
                 // LEGAL_PUSH(all_moves, move)
+                    awls_trace::log("TabuSearch::find_move eval block2 BACK which=", move.which, " where=", move.where);
                     same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                    awls_trace::log("TabuSearch::find_move eval block2 BACK done which=", move.which, " where=", move.where);
                 }
             }
             else
             {
                 // ������Ԫ�ز������Ԫ��֮��
-                for (int j = 2; j < n; j++)
+                for (int j = 2; j < n && kEnableFrontToBackMoves; j++)
                 {
                     if (block.front() <= 0 || block.front() >= current_schedule.graph.node_num - 1 ||
                         block[j] <= 0 || block[j] >= current_schedule.graph.node_num - 1)
@@ -238,10 +445,12 @@ NeighborhoodMove TabuSearch::find_move()
                     }
                     NeighborhoodMove move(Method::BACK, block.front(), block[j]);
                     // LEGAL_PUSH(all_moves, move)
+                    awls_trace::log("TabuSearch::find_move eval front_to_back which=", move.which, " where=", move.where);
                     same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                    awls_trace::log("TabuSearch::find_move eval front_to_back done which=", move.which, " where=", move.where);
                 }
                 // ����βԪ�ز������Ԫ��֮ǰ
-                for (int j = n - 2; j >= 0; j--)
+                for (int j = n - 2; j >= 0 && kEnableBackToFrontMoves; j--)
                 {
                     if (block.back() <= 0 || block.back() >= current_schedule.graph.node_num - 1 ||
                         block[j] <= 0 || block[j] >= current_schedule.graph.node_num - 1)
@@ -250,31 +459,43 @@ NeighborhoodMove TabuSearch::find_move()
                     }
                     NeighborhoodMove move(Method::FRONT, block.back(), block[j]);
                     // LEGAL_PUSH(all_moves, move)
+                    awls_trace::log("TabuSearch::find_move eval back_to_front which=", move.which, " where=", move.where);
                     same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                    awls_trace::log("TabuSearch::find_move eval back_to_front done which=", move.which, " where=", move.where);
                 }
                 // ������Ԫ�ز������Ԫ��֮ǰ
-                for (int j = 1; j < n - 1; j++)
+                if (kEnableMiddleBlockMoves)
                 {
-                    if (block[j] <= 0 || block[j] >= current_schedule.graph.node_num - 1 ||
-                        block.front() <= 0 || block.front() >= current_schedule.graph.node_num - 1)
+                    for (int j = 1; j < n - 1; j++)
                     {
-                        continue;
+                        if (block[j] <= 0 || block[j] >= current_schedule.graph.node_num - 1 ||
+                            block.front() <= 0 || block.front() >= current_schedule.graph.node_num - 1)
+                        {
+                            continue;
+                        }
+                        NeighborhoodMove move(Method::FRONT, block[j], block.front());
+                        // LEGAL_PUSH(all_moves, move)
+                        awls_trace::log("TabuSearch::find_move eval middle_to_front which=", move.which, " where=", move.where);
+                        same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                        awls_trace::log("TabuSearch::find_move eval middle_to_front done which=", move.which, " where=", move.where);
                     }
-                    NeighborhoodMove move(Method::FRONT, block[j], block.front());
-                    // LEGAL_PUSH(all_moves, move)
-                    same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
                 }
                 // ������Ԫ�ز����βԪ��֮��
-                for (int j = 1; j < n - 1; j++)
+                if (kEnableMiddleBlockMoves)
                 {
-                    if (block[j] <= 0 || block[j] >= current_schedule.graph.node_num - 1 ||
-                        block.back() <= 0 || block.back() >= current_schedule.graph.node_num - 1)
+                    for (int j = 1; j < n - 1; j++)
                     {
-                        continue;
+                        if (block[j] <= 0 || block[j] >= current_schedule.graph.node_num - 1 ||
+                            block.back() <= 0 || block.back() >= current_schedule.graph.node_num - 1)
+                        {
+                            continue;
+                        }
+                        NeighborhoodMove move(Method::BACK, block[j], block.back());
+                        // LEGAL_PUSH(all_moves, move)
+                        awls_trace::log("TabuSearch::find_move eval middle_to_back which=", move.which, " where=", move.where);
+                        same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                        awls_trace::log("TabuSearch::find_move eval middle_to_back done which=", move.which, " where=", move.where);
                     }
-                    NeighborhoodMove move(Method::BACK, block[j], block.back());
-                    // LEGAL_PUSH(all_moves, move)
-                    same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
                 }
             }
         }
@@ -442,20 +663,40 @@ NeighborhoodMove TabuSearch::find_move()
     if (best_moves.empty())
     {
         // �������һ������
-        return all_moves[RAND_INT(static_cast<int>(all_moves.size()))];
+        const auto selected = all_moves[RAND_INT(static_cast<int>(all_moves.size()))];
+        awls_trace::log("TabuSearch::find_move fallback method=", static_cast<int>(selected.method),
+            " which=", selected.which,
+            " where=", selected.where,
+            " all_moves=", all_moves.size(),
+            " min_makespan=", min_makespan);
+        return selected;
     }
     if (min_makespan > current_schedule.makespan && RAND_INT(100) < 3)
     {
-        return all_moves[RAND_INT(static_cast<int>(all_moves.size()))];
+        const auto selected = all_moves[RAND_INT(static_cast<int>(all_moves.size()))];
+        awls_trace::log("TabuSearch::find_move diversified method=", static_cast<int>(selected.method),
+            " which=", selected.which,
+            " where=", selected.where,
+            " all_moves=", all_moves.size(),
+            " min_makespan=", min_makespan);
+        return selected;
     }
     // ���������������������һ������
     const int index = RAND_INT(static_cast<int>(best_moves.size()));
-    return best_moves[index];
+    const auto selected = best_moves[index];
+    awls_trace::log("TabuSearch::find_move selected method=", static_cast<int>(selected.method),
+        " which=", selected.which,
+        " where=", selected.where,
+        " best_moves=", best_moves.size(),
+        " min_makespan=", min_makespan);
+    return selected;
 }
 #define NEXT_MACHINE_OP(op) current_schedule.graph.machine_successor[op]
 
 void TabuSearch::make_move(const NeighborhoodMove& move)
 {
+    awls_trace::log("TabuSearch::make_move start method=", static_cast<int>(move.method),
+        " which=", move.which, " where=", move.where);
     // ��ӽ���
     std::vector<int> tabu_sequence;
     int pos = 0;
@@ -505,6 +746,7 @@ void TabuSearch::make_move(const NeighborhoodMove& move)
 #endif
 
     current_schedule.make_move(move);
+    awls_trace::log("TabuSearch::make_move finish current=", current_schedule.get_makespan());
 }
 
 bool TabuSearch::is_tabu(const NeighborhoodMove& move, const int makespan) const
@@ -576,11 +818,27 @@ bool TabuSearch::is_tabu(const NeighborhoodMove& move, const int makespan) const
 void TabuSearch::update_critical_block()
 {
     const auto& graph = current_schedule.graph;
+    awls_trace::log("update_critical_block start makespan=", current_schedule.get_makespan());
 
     std::vector<int> start_candidates;
     // ��ÿ�������ĵ�һ������ʼѰ�ң��ҵ��ؼ�·���Ŀ�ͷ
-    for (auto start : graph.first_machine_operation)
+    for (int machine_idx = 0; machine_idx < static_cast<int>(graph.first_machine_operation.size()); ++machine_idx)
     {
+        const int start = graph.first_machine_operation[machine_idx];
+        awls_trace::log("update_critical_block inspect_start machine=", machine_idx,
+            " start=", start,
+            " time_size=", current_schedule.time_info.size(),
+            " node_num=", current_schedule.graph.node_num);
+        if (start != -1 && (start <= 0 || start >= current_schedule.graph.node_num - 1))
+        {
+            awls_trace::log("update_critical_block invalid_start machine=", machine_idx, " start=", start);
+            continue;
+        }
+        if (start != -1 && start >= static_cast<int>(current_schedule.time_info.size()))
+        {
+            awls_trace::log("update_critical_block start_outside_time_info machine=", machine_idx, " start=", start);
+            continue;
+        }
         if (start != -1 &&
             current_schedule.is_critical_operation(start) &&
             current_schedule.time_info[start].forward_path_length == 0)
@@ -591,18 +849,33 @@ void TabuSearch::update_critical_block()
 
     if (!start_candidates.empty())
     {
+        awls_trace::log("update_critical_block start_candidates=", start_candidates.size());
         do
         {
             critical_path.clear();
             // �����һ��start��ʼѰ��
             int start_index = RAND_INT(static_cast<int>(start_candidates.size()));
             critical_path.push_back(start_candidates[start_index]);
+            awls_trace::log("update_critical_block picked_start=", critical_path.back(),
+                " remaining_candidates=", start_candidates.size());
             start_candidates[start_index] = start_candidates.back();
             start_candidates.pop_back();
+            int step = 0;
             while (current_schedule.time_info[critical_path.back()].end_time != current_schedule.makespan)
             {
                 const auto op = critical_path.back();
                 const auto ms_op = graph.machine_successor[op];
+                const auto js_op = graph.job_successor[op];
+                awls_trace::log("update_critical_block step=", step,
+                    " op=", op,
+                    " end=", current_schedule.time_info[op].end_time,
+                    " ms=", ms_op,
+                    " js=", js_op);
+                if (++step > current_schedule.graph.node_num * 2)
+                {
+                    awls_trace::log("update_critical_block exceeded guard with path size=", critical_path.size());
+                    break;
+                }
                 // ̰����ͬ������Ѱ��
                 if (ms_op != -1 && current_schedule.is_critical_operation(ms_op) &&
                     current_schedule.time_info[ms_op].forward_path_length == current_schedule.time_info[op].end_time)
@@ -610,7 +883,6 @@ void TabuSearch::update_critical_block()
                     critical_path.push_back(ms_op);
                     continue;
                 }
-                const auto js_op = graph.job_successor[op];
                 if (js_op == -1 || js_op >= current_schedule.graph.node_num)
                 {
                     break;
@@ -660,6 +932,8 @@ void TabuSearch::update_critical_block()
             {
                 critical_blocks.push_back(critical_block);
             }
+            awls_trace::log("update_critical_block built_path_size=", critical_path.size(),
+                " blocks=", critical_blocks.size());
         } while (critical_blocks.empty() && !start_candidates.empty());
     }
     if (critical_blocks.empty())

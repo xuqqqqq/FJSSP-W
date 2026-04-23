@@ -150,6 +150,15 @@ void Schedule::update_time()
 bool Schedule::is_legal_move(const NeighborhoodMove& move) const
 {
     bool result = true;
+    if (move.which <= 0 || move.which >= graph.node_num - 1 ||
+        move.where <= 0 || move.where >= graph.node_num - 1)
+        return false;
+    if (move.which == move.where)
+        return false;
+    if (move.method == Method::FRONT && graph.machine_successor[move.which] == move.where)
+        return false;
+    if (move.method == Method::BACK && graph.machine_predecessor[move.which] == move.where)
+        return false;
     if (move.method == Method::BACK)
     {
         auto js_u = NEXT_JOB_OP(move.which);
@@ -194,6 +203,15 @@ bool Schedule::is_legal_move(const NeighborhoodMove& move) const
 bool Schedule::is_legal_move(const NeighborhoodMove& move) const
 {
     bool result = true;
+    if (move.which <= 0 || move.which >= graph.node_num - 1 ||
+        move.where <= 0 || move.where >= graph.node_num - 1)
+        return false;
+    if (move.which == move.where)
+        return false;
+    if (move.method == Method::FRONT && graph.machine_successor[move.which] == move.where)
+        return false;
+    if (move.method == Method::BACK && graph.machine_predecessor[move.which] == move.where)
+        return false;
     if (move.method == Method::BACK)
     {
         auto js_u = NEXT_JOB_OP(move.which);

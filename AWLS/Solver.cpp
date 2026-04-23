@@ -1,5 +1,6 @@
 ﻿#include "Solver.h"
 #include <chrono>
+#include "DebugTrace.h"
 
 // ��̬ԭ�ӱ��������ڿ����㷨ִ�е�ֹͣ��־
 std::atomic<bool> Solver::stop_flag{false};
@@ -68,6 +69,7 @@ void Solver::update_best_solution(const std::vector<Schedule>& population, Sched
 
 void Solver::Solve(const Instance& instance, long long time_limit, int best, SolverMode mode)
 {
+    awls_trace::log("Solver::Solve start time_limit=", time_limit, " best=", best, " mode=", static_cast<int>(mode));
     // ����ֹͣ��־
     stop_flag.store(false, std::memory_order_relaxed);
     
@@ -79,6 +81,8 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
     std::shared_ptr<OperationList> operation_list;  // �����б��������ҵ�����ļ��ϣ�
     std::vector<Schedule> population;               // ��Ⱥ��������ȷ�����
     initialize_population(instance, operation_list, population);
+    awls_trace::log("Solver::Solve initialized population size=", population.size(),
+        " initial_makespan=", population.empty() ? -1 : population.front().get_makespan());
 
     // ��¼���Ž���㷨״̬
     Schedule best_solution = population.front();    // ��ʼ���Ž���Ϊ��һ������
@@ -89,6 +93,12 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
     // ��ѭ����ֱ��ʱ��ľ����ҵ����Ž�
     while (!stop_flag.load(std::memory_order_relaxed))
     {
+        if (gen <= 5 || gen % 50 == 0)
+        {
+            awls_trace::log("Solver::Solve generation=", gen,
+                " population0=", population.empty() ? -1 : population[0].get_makespan(),
+                " best=", best_solution.get_makespan());
+        }
 #ifdef PRINT_INFO
         auto start = std::chrono::high_resolution_clock::now();  // ��ʼ��ʱ�����ڵ�����Ϣ��
 #endif
@@ -113,6 +123,11 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
         else  // ����ģʽ
         {
             schedule[0].update_time();
+            if (gen <= 5 || gen % 50 == 0)
+            {
+                awls_trace::log("Solver::Solve after update_time gen=", gen,
+                    " schedule0=", schedule[0].get_makespan());
+            }
             //children[0].update_time();
             //children[1].update_time();
         }
@@ -133,7 +148,17 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
         }
         else
         {
+            if (gen <= 5 || gen % 50 == 0)
+            {
+                awls_trace::log("Solver::Solve before TS gen=", gen,
+                    " schedule0=", schedule[0].get_makespan());
+            }
             TS[0].search(schedule[0], stop_flag);
+            if (gen <= 5 || gen % 50 == 0)
+            {
+                awls_trace::log("Solver::Solve after TS gen=", gen,
+                    " best_schedule0=", TS[0].best_schedule.get_makespan());
+            }
             //TS[0].search(children[0], stop_flag);
             //TS[1].search(children[1], stop_flag);
         }
@@ -156,6 +181,12 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
 
         // ����ȫ�����Ž�
         update_best_solution(population, best_solution, best);
+        if (gen <= 5 || gen % 50 == 0)
+        {
+            awls_trace::log("Solver::Solve after update_best gen=", gen,
+                " population0=", population[0].get_makespan(),
+                " best=", best_solution.get_makespan());
+        }
 
         // ����Ƿ��ҵ���֪���Ž⣬���������ǰ��ֹ
         if (best_solution.get_makespan() <= best)
@@ -182,6 +213,7 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
     }
 
     // ========== �㷨������������ ==========
+    awls_trace::log("Solver::Solve finished best=", best_solution.get_makespan());
     std::clog << "Final solution: " << best_solution.get_makespan() << std::endl;
     best_solution.output();                            // �ڿ���̨���������Ϣ
     best_solution.export_schedule("../../output.csv"); // �������Ƚ����CSV�ļ�
