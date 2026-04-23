@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{01980ca1-534a-4a9d-abda-dac5a9c1e195}</ProjectGuid>
+    <RootNamespace>AWLS</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Graph.h" />
+    <ClInclude Include="Instance.h" />
+    <ClInclude Include="NeighborhoodMove.h" />
+    <ClInclude Include="Operation.h" />
+    <ClInclude Include="RandomGenerator.h" />
+    <ClInclude Include="Schedule.h" />
+    <ClInclude Include="Solver.h" />
+    <ClInclude Include="TabuList.h" />
+    <ClInclude Include="TabuSearch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Graph.cpp" />
+    <ClCompile Include="Instance.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Schedule.cpp" />
+    <ClCompile Include="Solver.cpp" />
+    <ClCompile Include="TabuSearch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include=".idea\.idea.AWLS\.idea\.gitignore" />
+    <Content Include=".idea\.idea.AWLS\.idea\encodings.xml" />
+    <Content Include=".idea\.idea.AWLS\.idea\indexLayout.xml" />
+    <Content Include=".idea\.idea.AWLS\.idea\projectSettingsUpdater.xml" />
+    <Content Include=".idea\.idea.AWLS\.idea\workspace.xml" />
+    <Content Include=".vs\AWLS\FileContentIndex\0182b089-95be-434e-8264-7196a8ab2fee.vsidx" />
+    <Content Include=".vs\AWLS\FileContentIndex\29b8cae3-e171-4cea-8fef-3c0382ef9ab4.vsidx" />
+    <Content Include=".vs\AWLS\FileContentIndex\610a78fe-8e14-46ca-a818-98e61248aac0.vsidx" />
+    <Content Include=".vs\AWLS\FileContentIndex\c37c2b40-b90b-4836-aa66-5cca1c10e704.vsidx" />
+    <Content Include=".vs\AWLS\FileContentIndex\read.lock" />
+    <Content Include=".vs\AWLS\v17\.suo" />
+    <Content Include=".vs\AWLS\v17\Browse.VC.db" />
+    <Content Include=".vs\AWLS\v17\ipch\AutoPCH\12c5e5402068e308\TABUSEARCH.ipch" />
+    <Content Include=".vs\AWLS\v17\ipch\AutoPCH\2663f00aa51c27fc\GRAPH.ipch" />
+    <Content Include=".vs\AWLS\v17\ipch\AutoPCH\35c50d0c3add9673\SCHEDULE.ipch" />
+    <Content Include=".vs\AWLS\v17\ipch\AutoPCH\3ebdb8f504d2b87d\SOLVER.ipch" />
+    <Content Include=".vs\AWLS\v17\ipch\AutoPCH\5ddd0fdd951ec4f1\INSTANCE.ipch" />
+    <Content Include=".vs\AWLS\v17\ipch\AutoPCH\f55df740460bd43f\MAIN.ipch" />
+    <Content Include="AWLS.vcxproj.filters" />
+    <Content Include="AWLS.vcxproj.user" />
+    <Content Include="CMakeLists.txt" />
+    <Content Include="CMakeSettings.json" />
+    <Content Include="LICENSE" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include=".vs\AWLS\FileContentIndex\merges\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\20c00a6749ef059a\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\3bcf7374bb7815a8\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\5052b98df24cc31\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\507775058d765f2d\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\8c76eecbfc4a0874\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\91590e9763b25dad\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\c3280f476bbc1e04\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\d2ada9280460c996\" />
+    <Folder Include=".vs\AWLS\v17\ipch\AutoPCH\ebeffdb903adb489\" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
