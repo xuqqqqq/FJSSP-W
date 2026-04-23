@@ -14,6 +14,9 @@ reference Scenario 1 ATPTS submission under
 - `batch_scan_reference_csv.py`
   - Runs `improve_submission_from_baseline.py` in manageable batches and collates the summaries.
   - Useful because a full 30-instance sweep in one process timed out in this workspace, while 3 to 5 instances per batch completed reliably.
+- `generate_submission_from_baseline.py`
+  - Generates submission-grade rows for targeted instances using 10 distinct seeds.
+  - Replaces all 10 rows of each targeted instance, instead of swapping only a single best row.
 
 ## Verified Command
 
@@ -48,3 +51,5 @@ The summary file produced by that run is:
 
 - This path is currently the only reproduced strict improvement over the provided ATPTS reference baseline.
 - The current AWLS baseline remains stable on the 10-instance smoke set, but it has not yet beaten the ATPTS reference on `5_Kacem_4_workers`.
+- `improve_submission_from_baseline.py` is for exploratory intensification.
+- `generate_submission_from_baseline.py` is the safer path when a result must satisfy the competition-style 10-run requirement with distinct seeds.
