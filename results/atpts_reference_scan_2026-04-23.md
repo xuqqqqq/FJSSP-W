@@ -5,7 +5,7 @@
 - Extra evaluations per warm start: `20000`
 - Iteration cap per warm start: `200000`
 - Neighborhood size: `50`
-- Scanned instances: `12`
+- Scanned instances: `16`
 - Improved instances: `5`
 
 ## Improvements
@@ -24,3 +24,4 @@
 - `batch_b1_improvement_summary.json`: 1_Brandimarte_7_workers, 1_Brandimarte_12_workers, 1_Brandimarte_14_workers
 - `batch_b2a_improvement_summary.json`: 3_DPpaulli_1_workers, 3_DPpaulli_9_workers
 - `batch_b2b_improvement_summary.json`: 3_DPpaulli_15_workers, 3_DPpaulli_18_workers
+- `batch_c_improvement_summary.json`: 2a_Hurink_sdata_1_workers, 2b_Hurink_edata_1_workers, 2b_Hurink_edata_6_workers, 2d_Hurink_vdata_5_workers
