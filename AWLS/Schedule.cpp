@@ -20,6 +20,94 @@
 #define NEXT_JOB_OP(op) graph.job_successor[op]
 #define PREV_JOB_OP(op) graph.job_predecessor[op]
 
+namespace
+{
+bool is_reachable_on_machine_chain(const Graph& graph, const int from, const int target)
+{
+    int guard = 0;
+    for (int op = from; op != -1 && guard <= graph.node_num; op = graph.machine_successor[op], ++guard)
+    {
+        if (op == target)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool is_structurally_legal_move(const Schedule& schedule, const NeighborhoodMove& move)
+{
+    const auto& graph = schedule.get_graph();
+    const auto& operation_list = schedule.get_operation_list_ptr();
+    if (move.method == Method::CHANGE_WORKER)
+    {
+        if (move.which <= 0 || move.which >= graph.node_num - 1)
+        {
+            return false;
+        }
+        const int machine = graph.on_machine[move.which];
+        if (operation_list->worker_duration(move.which, machine, move.where) <= 0)
+        {
+            return false;
+        }
+        return move.where != graph.on_worker[move.which];
+    }
+
+    if (move.which <= 0 || move.which >= graph.node_num - 1 ||
+        move.where <= 0 || move.where >= graph.node_num - 1)
+    {
+        return false;
+    }
+    if (move.which == move.where)
+    {
+        return false;
+    }
+
+    if (move.method == Method::FRONT || move.method == Method::BACK)
+    {
+        if (graph.on_machine[move.which] != graph.on_machine[move.where])
+        {
+            return false;
+        }
+        if (move.method == Method::FRONT)
+        {
+            if (graph.machine_successor[move.which] == move.where)
+            {
+                return false;
+            }
+            if (!is_reachable_on_machine_chain(graph, move.where, move.which))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (graph.machine_predecessor[move.which] == move.where)
+            {
+                return false;
+            }
+            if (!is_reachable_on_machine_chain(graph, move.which, move.where))
+            {
+                return false;
+            }
+        }
+    }
+
+    try
+    {
+        Graph tmp = graph;
+        tmp.make_move(move);
+        const bool include_worker = operation_list->has_workers() && move.method != Method::CHANGE_WORKER;
+        static_cast<void>(tmp.topological_sort(false, include_worker));
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+}
+
 
 void Schedule::update_time()
 {
@@ -28,13 +116,15 @@ void Schedule::update_time()
     assigned_worker.assign(n, -1);
     assigned_duration.assign(n, 0);
 
-    auto forward_queue = graph.topological_sort(false);
+    graph.worker_predecessor.assign(n, -1);
+    graph.worker_successor.assign(n, -1);
+    graph.first_worker_operation.assign(operation_list->worker_num(), -1);
+    graph.last_worker_operation.assign(operation_list->worker_num(), -1);
+    graph.worker_operation_count.assign(operation_list->worker_num(), 0);
+    graph.on_worker_pos_vec.assign(n, 0);
+
+    auto forward_queue = graph.topological_sort(false, false);
     makespan = 0;
-    std::vector<int> worker_ready;
-    if (operation_list->has_workers())
-    {
-        worker_ready.assign(operation_list->worker_num(), 0);
-    }
 
     for (int i = 1; i < n - 1; i++)
     {
@@ -43,6 +133,7 @@ void Schedule::update_time()
         int prev_op_id = graph.job_predecessor[curr_node];
         int prev_machine_id = graph.machine_predecessor[curr_node];
         const int machine = graph.on_machine[curr_node];
+        int chosen_worker = graph.on_worker[curr_node];
 
         if (prev_op_id != -1)
         {
@@ -54,48 +145,63 @@ void Schedule::update_time()
             start_time = std::max(start_time, time_info[prev_machine_id].end_time);
         }
 
-        int chosen_worker = operation_list->best_worker_for_machine(curr_node, machine);
+        if (!operation_list->has_workers())
+        {
+            chosen_worker = 0;
+        }
+        if (chosen_worker < 0 || operation_list->worker_duration(curr_node, machine, chosen_worker) <= 0)
+        {
+            chosen_worker = operation_list->best_worker_for_machine(curr_node, machine);
+        }
+        if (chosen_worker < 0)
+        {
+            const auto& workers = operation_list->workers_for_machine(curr_node, machine);
+            if (!workers.empty())
+            {
+                chosen_worker = workers.front();
+            }
+        }
+
         int duration = operation_list->duration(curr_node, machine);
         int operation_start = start_time;
 
         if (operation_list->has_workers())
         {
-            const auto& workers = operation_list->workers_for_machine(curr_node, machine);
-            int best_end = INT_MAX;
-            int best_start = INT_MAX;
-            int best_worker = -1;
-            int best_duration = duration;
-
-            for (const int worker : workers)
+            if (chosen_worker >= 0)
             {
-                const int worker_duration = operation_list->worker_duration(curr_node, machine, worker);
-                if (worker_duration <= 0)
-                {
-                    continue;
-                }
-                const int candidate_start = std::max(start_time, worker_ready[worker]);
-                const int candidate_end = candidate_start + worker_duration;
-                if (candidate_end < best_end || (candidate_end == best_end && candidate_start < best_start))
-                {
-                    best_end = candidate_end;
-                    best_start = candidate_start;
-                    best_worker = worker;
-                    best_duration = worker_duration;
-                }
+                duration = operation_list->worker_duration(curr_node, machine, chosen_worker);
+            }
+            if (duration <= 0)
+            {
+                duration = operation_list->duration(curr_node, machine);
             }
 
-            if (best_worker != -1)
+            if (chosen_worker >= 0)
             {
-                chosen_worker = best_worker;
-                duration = best_duration;
-                operation_start = best_start;
-                worker_ready[best_worker] = best_end;
+                const int prev_worker_id = graph.last_worker_operation[chosen_worker];
+                if (prev_worker_id != -1)
+                {
+                    graph.worker_successor[prev_worker_id] = curr_node;
+                    graph.worker_predecessor[curr_node] = prev_worker_id;
+                    start_time = std::max(start_time, time_info[prev_worker_id].end_time);
+                    graph.on_worker_pos_vec[curr_node] = graph.worker_operation_count[chosen_worker];
+                }
+                else
+                {
+                    graph.first_worker_operation[chosen_worker] = curr_node;
+                    graph.on_worker_pos_vec[curr_node] = 0;
+                }
+
+                graph.last_worker_operation[chosen_worker] = curr_node;
+                graph.worker_operation_count[chosen_worker]++;
+                operation_start = start_time;
             }
         }
 
         time_info[curr_node].operator_id = curr_node;
         time_info[curr_node].forward_path_length = operation_start;
         const int end_time = operation_start + duration;
+        graph.on_worker[curr_node] = chosen_worker;
         assigned_worker[curr_node] = chosen_worker;
         assigned_duration[curr_node] = duration;
 
@@ -107,11 +213,25 @@ void Schedule::update_time()
     }
 
 
-    for (int i = n - 2; i > 0; --i)
+    std::vector<int> reverse_ops;
+    reverse_ops.reserve(n - 2);
+    for (int op = 1; op < n - 1; ++op)
     {
-        int op = forward_queue[i];
+        reverse_ops.push_back(op);
+    }
+    std::sort(reverse_ops.begin(), reverse_ops.end(), [&](const int lhs, const int rhs) {
+        if (time_info[lhs].end_time != time_info[rhs].end_time)
+        {
+            return time_info[lhs].end_time > time_info[rhs].end_time;
+        }
+        return lhs > rhs;
+        });
+
+    for (const int op : reverse_ops)
+    {
         int js = graph.job_successor[op];
         int ms = graph.machine_successor[op];
+        int ws = graph.worker_successor[op];
         int q = 0;
         if (js != n - 1)
         {
@@ -120,6 +240,10 @@ void Schedule::update_time()
         if (ms != -1)
         {
             q = std::max(q, time_info[ms].backward_path_length + assigned_duration[ms]);
+        }
+        if (ws != -1)
+        {
+            q = std::max(q, time_info[ws].backward_path_length + assigned_duration[ws]);
         }
         time_info[op].backward_path_length = q;
     }
@@ -149,119 +273,33 @@ void Schedule::update_time()
 #ifdef LEGAL_ZHANGCHAOYONG
 bool Schedule::is_legal_move(const NeighborhoodMove& move) const
 {
-    bool result = true;
-    if (move.which <= 0 || move.which >= graph.node_num - 1 ||
-        move.where <= 0 || move.where >= graph.node_num - 1)
-        return false;
-    if (move.which == move.where)
-        return false;
-    if (move.method == Method::FRONT && graph.machine_successor[move.which] == move.where)
-        return false;
-    if (move.method == Method::BACK && graph.machine_predecessor[move.which] == move.where)
-        return false;
-    if (move.method == Method::BACK)
-    {
-        auto js_u = NEXT_JOB_OP(move.which);
-        result = time_info[move.where].backward_path_length +
-            operation_list->duration(move.where, graph.on_machine[move.where]) >
-            time_info[js_u].backward_path_length + operation_list->duration(js_u, graph.on_machine[js_u]);
-    }
-    if (move.method == Method::FRONT)
-    {
-        result = time_info[move.where].end_time > time_info[PREV_JOB_OP(move.which)].end_time;
-    }
-#ifdef UNIT_TEST
-    if (move.method == Method::BACK || move.method == Method::FRONT)
-    {
-        bool right = true;
-        try
-        {
-            auto tmp = *this;
-            tmp.make_move(move);
-        }
-        catch (const std::exception& e)
-        {
-            right = false;
-        }
-        static int count = 0;
-        static int count_right = 0;
-        if (result == right)
-            count_right += 1;
-        count += 1;
-        if (count % 100000 == 0)
-        {
-
-            std::clog << static_cast<double>(count_right) / static_cast<double>(count) * 100 << "%" << std::endl;
-            count = 0;
-            count_right = 0;
-        }
-    }
-#endif
-    return result;
+    return is_structurally_legal_move(*this, move);
 }
 #else
 bool Schedule::is_legal_move(const NeighborhoodMove& move) const
 {
-    bool result = true;
-    if (move.which <= 0 || move.which >= graph.node_num - 1 ||
-        move.where <= 0 || move.where >= graph.node_num - 1)
-        return false;
-    if (move.which == move.where)
-        return false;
-    if (move.method == Method::FRONT && graph.machine_successor[move.which] == move.where)
-        return false;
-    if (move.method == Method::BACK && graph.machine_predecessor[move.which] == move.where)
-        return false;
-    if (move.method == Method::BACK)
-    {
-        auto js_u = NEXT_JOB_OP(move.which);
-        if (js_u == move.where)
-            result = false;
-        else
-        {
-            result = time_info[move.where].backward_path_length +
-                operation_list->duration(move.where, graph.on_machine[move.where]) >=
-                time_info[js_u].backward_path_length + operation_list->duration(js_u, graph.on_machine[js_u]);
-        }
-    }
-    if (move.method == Method::FRONT)
-    {
-        if (move.where == PREV_JOB_OP(move.which))
-            result = false;
-        else
-            result = time_info[move.where].end_time >= time_info[PREV_JOB_OP(move.which)].end_time;
-    }
-#ifdef UNIT_TEST
-    if (move.method == Method::BACK || move.method == Method::FRONT)
-    {
-        bool right = true;
-        try
-        {
-            auto tmp = *this;
-            tmp.make_move(move);
-        }
-        catch (const std::exception& e)
-        {
-            right = false;
-        }
-        static int count = 0;
-        static int count_right = 0;
-        if (result == right)
-            count_right += 1;
-        count += 1;
-        if (count % 100000 == 0)
-        {
-
-            std::clog << static_cast<double>(count_right) / static_cast<double>(count) * 100 << "%" << std::endl;
-        }
-    }
-#endif
-    return result;
+    return is_structurally_legal_move(*this, move);
 }
 #endif
 void Schedule::make_move(const NeighborhoodMove& move)
 {
     graph.make_move(move);
+    if (move.method == Method::CHANGE_MACHINE_BACK || move.method == Method::CHANGE_MACHINE_FRONT)
+    {
+        const int machine = graph.on_machine[move.which];
+        if (operation_list->worker_duration(move.which, machine, graph.on_worker[move.which]) <= 0)
+        {
+            graph.on_worker[move.which] = operation_list->best_worker_for_machine(move.which, machine);
+        }
+    }
+    else if (move.method == Method::CHANGE_WORKER)
+    {
+        const int machine = graph.on_machine[move.which];
+        if (operation_list->worker_duration(move.which, machine, graph.on_worker[move.which]) <= 0)
+        {
+            graph.on_worker[move.which] = operation_list->best_worker_for_machine(move.which, machine);
+        }
+    }
     update_time();
 }
 
@@ -848,4 +886,5 @@ int same_machine_evaluate(const Schedule& current_schedule, const NeighborhoodMo
     }
 }
 #endif
+
 

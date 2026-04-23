@@ -7,6 +7,20 @@
 #include "NeighborhoodMove.h"
 #include "Schedule.h"
 #include "TabuList.h"
+
+enum class CriticalBlockResource
+{
+    Machine,
+    Worker
+};
+
+struct CriticalBlock
+{
+    CriticalBlockResource resource;
+    int resource_id;
+    std::vector<int> operations;
+};
+
 class TabuSearch
 {
 public:
@@ -41,7 +55,7 @@ private:
         std::vector<NeighborhoodMove>& best_moves, int& min_makespan) const;
 
     std::vector<int> critical_path;
-    std::vector<std::vector<int>> critical_blocks;
+    std::vector<CriticalBlock> critical_blocks;
 
     [[nodiscard]] bool is_tabu(const NeighborhoodMove& move, int makespan) const;
     void update_critical_block();

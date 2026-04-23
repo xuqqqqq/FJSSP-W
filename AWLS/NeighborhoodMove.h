@@ -16,18 +16,20 @@
   * @enum Method
   * @brief Enumerates different types of neighborhood moves for FJSP optimization.
   *
-  * These methods define different ways to modify a solution in the search space:
-  * - BACK: Move an operation to a same machine's later position
-  * - FRONT: Move an operation to a same machine's earlier position
-  * - CHANGE_MACHINE_BACK: Change the machine assignment and move to a later position
-  * - CHANGE_MACHINE_FRONT: Change the machine assignment and move to an earlier position
+ * These methods define different ways to modify a solution in the search space:
+ * - BACK: Move an operation to a same machine's later position
+ * - FRONT: Move an operation to a same machine's earlier position
+ * - CHANGE_MACHINE_BACK: Change the machine assignment and move to a later position
+ * - CHANGE_MACHINE_FRONT: Change the machine assignment and move to an earlier position
+ * - CHANGE_WORKER: Change the assigned worker while keeping the machine assignment
   */
 enum class Method
 {
     BACK,
     FRONT,
     CHANGE_MACHINE_BACK,
-    CHANGE_MACHINE_FRONT
+    CHANGE_MACHINE_FRONT,
+    CHANGE_WORKER
 };
 
 /**
@@ -81,8 +83,8 @@ struct NeighborhoodMove
      */
     [[nodiscard]] std::string str() const
     {
-        static constexpr std::array<std::string_view, 4> methodToString = { "BACK", "FRONT", "CHANGE_MACHINE_BACK",
-                                                                           "CHANGE_MACHINE_FRONT" };
+        static constexpr std::array<std::string_view, 5> methodToString = { "BACK", "FRONT", "CHANGE_MACHINE_BACK",
+                                                                           "CHANGE_MACHINE_FRONT", "CHANGE_WORKER" };
 
         const auto index = static_cast<size_t>(method);
         if (index >= methodToString.size())

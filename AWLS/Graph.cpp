@@ -14,7 +14,7 @@
  * @return A deque containing nodes in topologically sorted order
  * @throws std::runtime_error if graph contains a cycle
  */
-std::deque<int> Graph::topological_sort(bool reverse) const
+std::deque<int> Graph::topological_sort(bool reverse, const bool include_worker) const
 {
     std::vector<int> in_degree(node_num, 0);
     int first_node = reverse ? node_num - 1 : 0;
@@ -25,10 +25,18 @@ std::deque<int> Graph::topological_sort(bool reverse) const
         if (reverse)
         {
             in_degree[i] = (machine_successor[i] != -1) + (job_successor[i] != -1);
+            if (include_worker)
+            {
+                in_degree[i] += static_cast<int>(worker_successor[i] != -1);
+            }
         }
         else
         {
             in_degree[i] = static_cast<int>(machine_predecessor[i] != -1) + static_cast<int>(job_predecessor[i] != -1);
+            if (include_worker)
+            {
+                in_degree[i] += static_cast<int>(worker_predecessor[i] != -1);
+            }
         }
     }
 
@@ -106,6 +114,14 @@ std::deque<int> Graph::topological_sort(bool reverse) const
                         candidates.push_back(machine_predecessor[curr]);
                     }
                 }
+                if (include_worker && worker_predecessor[curr] != -1)
+                {
+                    in_degree[worker_predecessor[curr]]--;
+                    if (in_degree[worker_predecessor[curr]] == 0)
+                    {
+                        candidates.push_back(worker_predecessor[curr]);
+                    }
+                }
             }
             else
             {
@@ -126,6 +142,14 @@ std::deque<int> Graph::topological_sort(bool reverse) const
                         candidates.push_back(machine_successor[curr]);
                     }
                 }
+                if (include_worker && worker_successor[curr] != -1)
+                {
+                    in_degree[worker_successor[curr]]--;
+                    if (in_degree[worker_successor[curr]] == 0)
+                    {
+                        candidates.push_back(worker_successor[curr]);
+                    }
+                }
             }
         }
     }
@@ -142,18 +166,25 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
     // Initialize graph structures
     this->job_successor.assign(this->node_num, -1);
     this->machine_successor.assign(this->node_num, -1);
+    this->worker_successor.assign(this->node_num, -1);
     this->job_predecessor.assign(this->node_num, -1);
     this->machine_predecessor.assign(this->node_num, -1);
+    this->worker_predecessor.assign(this->node_num, -1);
 
     this->first_job_operation.assign(job_num, -1);
     this->last_job_operation.assign(job_num, -1);
     this->first_machine_operation.assign(machine_num, -1);
     this->last_machine_operation.assign(machine_num, -1);
+    this->first_worker_operation.assign(operation_list.worker_num(), -1);
+    this->last_worker_operation.assign(operation_list.worker_num(), -1);
 
     this->machine_operation_count.assign(machine_num, 0);
+    this->worker_operation_count.assign(operation_list.worker_num(), 0);
 
     on_machine.resize(this->node_num, -1);
+    on_worker.resize(this->node_num, -1);
     on_machine_pos_vec.resize(this->node_num, 0);
+    on_worker_pos_vec.resize(this->node_num, 0);
 
     // ����������
     for (int job_id = 0, op_id = 1; job_id < job_num; ++job_id)
@@ -290,6 +321,10 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
         int random_index = RAND_INT(filtered_choices.size());
         int selected_op = std::get<0>(filtered_choices[random_index]);
         int selected_machine = std::get<1>(filtered_choices[random_index]);
+        const auto& worker_candidates = operation_list.workers_for_machine(selected_op, selected_machine);
+        const int selected_worker = worker_candidates.empty()
+            ? std::max(0, operation_list.best_worker_for_machine(selected_op, selected_machine))
+            : worker_candidates[RAND_INT(static_cast<int>(worker_candidates.size()))];
 
         // ���µ���
         int job_id = operation_list[selected_op].job_id;
@@ -305,6 +340,7 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
 
         // ����ͼ�ṹ
         on_machine[selected_op] = selected_machine;
+        on_worker[selected_op] = selected_worker;
         machine_operation_count[selected_machine]++;
         machine_assigned_ops[selected_machine]++; // ���»�������Ĳ�����
 
@@ -338,18 +374,25 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
 
     this->job_successor.assign(this->node_num, -1);
     this->machine_successor.assign(this->node_num, -1);
+    this->worker_successor.assign(this->node_num, -1);
     this->job_predecessor.assign(this->node_num, -1);
     this->machine_predecessor.assign(this->node_num, -1);
+    this->worker_predecessor.assign(this->node_num, -1);
 
     this->first_job_operation.assign(job_num, -1);
     this->last_job_operation.assign(job_num, -1);
     this->first_machine_operation.assign(machine_num, -1);
     this->last_machine_operation.assign(machine_num, -1);
+    this->first_worker_operation.assign(operation_list.worker_num(), -1);
+    this->last_worker_operation.assign(operation_list.worker_num(), -1);
 
     this->machine_operation_count.assign(machine_num, 0);
+    this->worker_operation_count.assign(operation_list.worker_num(), 0);
 
     on_machine.resize(this->node_num, -1);
+    on_worker.resize(this->node_num, -1);
     on_machine_pos_vec.resize(this->node_num, 0);
+    on_worker_pos_vec.resize(this->node_num, 0);
 
     // ����������
     for (int job_id = 0, op_id = 1; job_id < job_num; ++job_id)
@@ -390,7 +433,12 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
         // Ϊ�����һ������
         const auto& curr_candidates = operation_list[curr_op].candidates;
         const int curr_machine = curr_candidates[RAND_INT(curr_candidates.size())];
+        const auto& worker_candidates = operation_list.workers_for_machine(curr_op, curr_machine);
+        const int curr_worker = worker_candidates.empty()
+            ? std::max(0, operation_list.best_worker_for_machine(curr_op, curr_machine))
+            : worker_candidates[RAND_INT(static_cast<int>(worker_candidates.size()))];
         on_machine[curr_op] = curr_machine;
+        on_worker[curr_op] = curr_worker;
         machine_operation_count[curr_machine]++;
         // �����ǰ�����ǻ����ϵĵ�һ��������������� first_machine_operation
         if (first_machine_operation[curr_machine] == -1)
@@ -425,6 +473,15 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
 
 void Graph::make_move(const NeighborhoodMove& move)
 {
+    if (move.method == Method::CHANGE_WORKER)
+    {
+        if (move.which > 0 && move.which < node_num - 1)
+        {
+            on_worker[move.which] = move.where;
+        }
+        return;
+    }
+
     auto is_reachable_forward = [&](int from, int target) -> bool
     {
         int guard = 0;
@@ -715,4 +772,5 @@ void Graph::make_move(const NeighborhoodMove& move)
 //    }
 //    return result;
 //}
+
 

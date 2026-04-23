@@ -52,6 +52,10 @@ public:
     [[nodiscard]] int get_makespan() const { return makespan; }
     [[nodiscard]] bool is_legal_move(const NeighborhoodMove& move) const;
     [[nodiscard]] int similarity(const Schedule& other) const;
+    [[nodiscard]] const Graph& get_graph() const { return graph; }
+    [[nodiscard]] const std::shared_ptr<OperationList>& get_operation_list_ptr() const { return operation_list; }
+    [[nodiscard]] const std::vector<OperationTimeInfo>& get_time_info() const { return time_info; }
+    [[nodiscard]] bool is_critical(int operation_id) const { return is_critical_operation(operation_id); }
 
     [[nodiscard]] int get_assigned_worker(int op_id) const
     {
