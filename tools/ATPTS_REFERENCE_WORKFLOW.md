@@ -17,6 +17,9 @@ reference Scenario 1 ATPTS submission under
 - `generate_submission_from_baseline.py`
   - Generates submission-grade rows for targeted instances using 10 distinct seeds.
   - Replaces all 10 rows of each targeted instance, instead of swapping only a single best row.
+- `batch_generate_submission_from_baseline.py`
+  - Runs the submission-grade generator in smaller batches and merges the targeted rows back into one CSV.
+  - Useful because a large 10-seed submission regeneration can still time out when too many instances are grouped together.
 
 ## Verified Command
 
