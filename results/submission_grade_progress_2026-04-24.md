@@ -43,9 +43,12 @@ average quality and/or time-to-best:
 | `2a_Hurink_sdata_18_workers` | 1138 | 1138.0 | 1138.0 | all 10 seeds at `0` evaluations |
 | `2a_Hurink_sdata_38_workers` | 1741 | 1768.7 | 1741.0 | all 10 seeds at `0` evaluations |
 | `2a_Hurink_sdata_40_workers` | 1373 | 1446.0 | 1373.0 | all 10 seeds at `0` evaluations |
+| `2a_Hurink_sdata_54_workers` | 8251 | 8808.1 | 8251.0 | all 10 seeds at `0` evaluations |
+| `2a_Hurink_sdata_61_workers` | 874 | 914.8 | 874.0 | all 10 seeds at `0` evaluations |
 | `2b_Hurink_edata_1_workers` | 51 | 51.0 | 51.0 | all 10 seeds at `0` evaluations |
 | `2a_Hurink_sdata_63_workers` | 382 | 395.6 | 382.0 | all 10 seeds at `0` evaluations |
 | `2b_Hurink_edata_6_workers` | 544 | 551.7 | 544.0 | all 10 seeds at `0` evaluations |
+| `2c_Hurink_rdata_50_workers` | 5697 | 5749.3 | 5697.0 | all 10 seeds at `0` evaluations |
 | `2d_Hurink_vdata_5_workers` | 507 | 512.3 | 507.0 | all 10 seeds at `0` evaluations |
 | `4_ChambersBarnes_10_workers` | 884 | 918.2 | 884.0 | all 10 seeds at `0` evaluations |
 | `5_Kacem_3_workers` | 7 | 7.0 | 7.0 | all 10 seeds at `0` evaluations |
@@ -60,6 +63,8 @@ average quality and/or time-to-best:
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best21_2026-04-24.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best24_2026-04-24.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best27_2026-04-24.csv`
+- `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best30_2026-04-24.csv`
+- `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best30_comparison_2026-04-24.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved8_submission_2026-04-24_merged_submission.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved6_submission_2026-04-24_aggregate_summary.json`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved6_submission_2026-04-24_aggregate_summary.md`
@@ -69,7 +74,8 @@ average quality and/or time-to-best:
 
 ## Notes
 
-- This is still a compliant subset check, not yet a full 30-instance submission regeneration.
+- This is now a full 30-instance submission-grade artifact.
 - The 8-instance 10-seed attempt timed out when run as one large job, which is why the batch coordinator exists.
 - After batching, all 8 currently known improvement candidates survived under the 10-seed submission discipline.
-- `submission_grade_best27_2026-04-24.csv` combines the 11 better-makespan instances with 16 same-best, faster/stabler instances.
+- `submission_grade_best30_2026-04-24.csv` combines the 11 better-makespan instances with 19 same-best, faster/stabler instances.
+- `submission_grade_best30_comparison_2026-04-24.csv` records per-instance best/average/FunctionEvaluations deltas.
