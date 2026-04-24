@@ -23,8 +23,23 @@ baseline submission:
 | `6_Fattahi_14_workers` | 546 | 543 | -3 | 570.6 | 544.0 |
 | `6_Fattahi_20_workers` | 1155 | 1153 | -2 | 1177.5 | 1154.8 |
 
+## Verified same-best improvements
+
+These instances did not beat the known best makespan, but the 10-seed
+regeneration made every run hit the best known value immediately, improving
+average quality and/or time-to-best:
+
+| Instance | Best | Baseline Avg | Submission Avg | Time-to-best evidence |
+| --- | ---: | ---: | ---: | --- |
+| `0_BehnkeGeiger_42_workers` | 80 | 82.0 | 80.0 | all 10 seeds at `0` evaluations |
+| `0_BehnkeGeiger_46_workers` | 108 | 111.4 | 108.0 | all 10 seeds at `0` evaluations |
+| `1_Brandimarte_7_workers` | 140 | 142.2 | 140.0 | all 10 seeds at `0` evaluations |
+| `5_Kacem_3_workers` | 7 | 7.0 | 7.0 | all 10 seeds at `0` evaluations |
+| `5_Kacem_4_workers` | 11 | 11.1 | 11.0 | all 10 seeds at `0` evaluations |
+
 ## External artifacts
 
+- `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best13_2026-04-24.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved8_submission_2026-04-24_merged_submission.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved6_submission_2026-04-24_aggregate_summary.json`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved6_submission_2026-04-24_aggregate_summary.md`
@@ -37,3 +52,4 @@ baseline submission:
 - This is still a compliant subset check, not yet a full 30-instance submission regeneration.
 - The 8-instance 10-seed attempt timed out when run as one large job, which is why the batch coordinator exists.
 - After batching, all 8 currently known improvement candidates survived under the 10-seed submission discipline.
+- `submission_grade_best13_2026-04-24.csv` combines the 8 better-makespan instances with 5 same-best, faster/stabler instances.
