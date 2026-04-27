@@ -18,7 +18,7 @@ baseline submission:
 | `2c_Hurink_rdata_28_workers` | 789 | 784 | -5 | 811.9 | 787.0 |
 | `2c_Hurink_rdata_38_workers` | 1539 | 1533 | -6 | 1556.8 | 1536.6 |
 | `2d_Hurink_vdata_18_workers` | 1041 | 1039 | -2 | 1047.5 | 1040.8 |
-| `2d_Hurink_vdata_30_workers` | 1075 | 1072 | -3 | 1084.3 | 1074.0 |
+| `2d_Hurink_vdata_30_workers` | 1075 | 1064 | -11 | 1084.3 | 1068.1 |
 | `3_DPpaulli_1_workers` | 2482 | 2480 | -2 | 2528.0 | 2481.8 |
 | `3_DPpaulli_9_workers` | 2087 | 2077 | -10 | 2099.2 | 2083.5 |
 | `3_DPpaulli_15_workers` | 2213 | 2199 | -14 | 2241.1 | 2208.9 |
@@ -65,6 +65,8 @@ average quality and/or time-to-best:
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best27_2026-04-24.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best30_2026-04-24.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best30_comparison_2026-04-24.csv`
+- `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best30_2026-04-27.csv`
+- `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\submission_grade_best30_comparison_2026-04-27.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved8_submission_2026-04-24_merged_submission.csv`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved6_submission_2026-04-24_aggregate_summary.json`
 - `C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\Submission_HUST-SMART-Lab_Scenario1_ATPTS\improved6_submission_2026-04-24_aggregate_summary.md`
@@ -79,3 +81,4 @@ average quality and/or time-to-best:
 - After batching, all 8 currently known improvement candidates survived under the 10-seed submission discipline.
 - `submission_grade_best30_2026-04-24.csv` combines the 11 better-makespan instances with 19 same-best, faster/stabler instances.
 - `submission_grade_best30_comparison_2026-04-24.csv` records per-instance best/average/FunctionEvaluations deltas.
+- `submission_grade_best30_2026-04-27.csv` improves `2d_Hurink_vdata_30_workers` further from `1072` to `1064` while preserving full 30-instance, 10-seed coverage.

@@ -1,0 +1,138 @@
+[
+  {
+    "instance": "2a_Hurink_sdata_54_workers",
+    "status": "OK",
+    "returncode": 0,
+    "timeout_seconds": 900,
+    "stdout": "Improved instances: 0 / 1\nImproved CSV written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2a_Hurink_sdata_54_workers_submission.csv\nSummary written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2a_Hurink_sdata_54_workers_summary.json\n",
+    "stderr": "",
+    "summary": [
+      {
+        "instance": "2a_Hurink_sdata_54_workers",
+        "baseline_best": 8251,
+        "improved_best": 8251,
+        "improved": false,
+        "seeds": [
+          {
+            "seed": 419,
+            "makespan": 8251,
+            "evaluations_to_best": 0
+          },
+          {
+            "seed": 421,
+            "makespan": 8251,
+            "evaluations_to_best": 0
+          },
+          {
+            "seed": 431,
+            "makespan": 8251,
+            "evaluations_to_best": 0
+          }
+        ],
+        "replaced_row_index": null
+      }
+    ]
+  },
+  {
+    "instance": "2c_Hurink_rdata_50_workers",
+    "status": "OK",
+    "returncode": 0,
+    "timeout_seconds": 900,
+    "stdout": "Improved instances: 0 / 1\nImproved CSV written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2c_Hurink_rdata_50_workers_submission.csv\nSummary written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2c_Hurink_rdata_50_workers_summary.json\n",
+    "stderr": "",
+    "summary": [
+      {
+        "instance": "2c_Hurink_rdata_50_workers",
+        "baseline_best": 5697,
+        "improved_best": 5697,
+        "improved": false,
+        "seeds": [
+          {
+            "seed": 419,
+            "makespan": 5697,
+            "evaluations_to_best": 0
+          },
+          {
+            "seed": 421,
+            "makespan": 5697,
+            "evaluations_to_best": 0
+          },
+          {
+            "seed": 431,
+            "makespan": 5697,
+            "evaluations_to_best": 0
+          }
+        ],
+        "replaced_row_index": null
+      }
+    ]
+  },
+  {
+    "instance": "2a_Hurink_sdata_40_workers",
+    "status": "OK",
+    "returncode": 0,
+    "timeout_seconds": 900,
+    "stdout": "Improved instances: 0 / 1\nImproved CSV written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2a_Hurink_sdata_40_workers_submission.csv\nSummary written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2a_Hurink_sdata_40_workers_summary.json\n",
+    "stderr": "",
+    "summary": [
+      {
+        "instance": "2a_Hurink_sdata_40_workers",
+        "baseline_best": 1373,
+        "improved_best": 1373,
+        "improved": false,
+        "seeds": [
+          {
+            "seed": 419,
+            "makespan": 1373,
+            "evaluations_to_best": 0
+          },
+          {
+            "seed": 421,
+            "makespan": 1373,
+            "evaluations_to_best": 0
+          },
+          {
+            "seed": 431,
+            "makespan": 1373,
+            "evaluations_to_best": 0
+          }
+        ],
+        "replaced_row_index": null
+      }
+    ]
+  },
+  {
+    "instance": "2d_Hurink_vdata_30_workers",
+    "status": "IMPROVED",
+    "returncode": 0,
+    "timeout_seconds": 900,
+    "stdout": "Improved instances: 1 / 1\n2d_Hurink_vdata_30_workers: 1072 -> 1069\nImproved CSV written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2d_Hurink_vdata_30_workers_submission.csv\nSummary written to: C:\\Users\\ASUS\\Downloads\\FJSSP-W-Benchmarking-main\\Submission_HUST-SMART-Lab_Scenario1_ATPTS\\bounded_explore_wave1_2026-04-27_2d_Hurink_vdata_30_workers_summary.json\n",
+    "stderr": "",
+    "summary": [
+      {
+        "instance": "2d_Hurink_vdata_30_workers",
+        "baseline_best": 1072,
+        "improved_best": 1069,
+        "improved": true,
+        "seeds": [
+          {
+            "seed": 419,
+            "makespan": 1069,
+            "evaluations_to_best": 7555
+          },
+          {
+            "seed": 421,
+            "makespan": 1070,
+            "evaluations_to_best": 8215
+          },
+          {
+            "seed": 431,
+            "makespan": 1071,
+            "evaluations_to_best": 950
+          }
+        ],
+        "replaced_row_index": 93
+      }
+    ]
+  }
+]
