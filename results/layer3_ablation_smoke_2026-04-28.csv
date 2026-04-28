@@ -1,0 +1,31 @@
+layer,source,competition_instance,family,seed,time_limit_sec,makespan,status,returncode,elapsed_sec,lb,ub,stdout_tail,stderr_tail
+layer3_ablation_representatives,Fattahi1,,Fattahi,1009,1,69,OK,0,0.812,69,69,"makespan=69
+2	1 0 w=1	1 1 w=1	
+2	0 0 w=2	0 1 w=2	
+","Final solution: 69
+Schedule exported to ../../output.csv
+"
+layer3_ablation_representatives,Fattahi1,,Fattahi,1013,1,69,OK,0,0.738,69,69,"makespan=69
+2	1 0 w=1	1 1 w=1	
+2	0 0 w=0	0 1 w=2	
+","Final solution: 69
+Schedule exported to ../../output.csv
+"
+layer3_ablation_representatives,Kacem1,,Kacem,1009,1,11,OK,0,0.784,11,11,"makespan=11
+3	1 0 w=5	1 1 w=6	1 2 w=2	
+2	0 1 w=4	0 2 w=4	
+2	2 0 w=3	2 1 w=0	
+5	0 0 w=1	3 0 w=1	3 1 w=2	2 2 w=1	2 3 w=0	
+0	
+","Final solution: 11
+Schedule exported to ../../output.csv
+"
+layer3_ablation_representatives,Kacem1,,Kacem,1013,1,11,OK,0,1.047,11,11,"makespan=11
+3	1 0 w=5	1 1 w=5	0 2 w=4	
+3	0 1 w=3	2 1 w=1	3 1 w=3	
+2	2 0 w=4	1 2 w=0	
+4	0 0 w=1	3 0 w=1	2 2 w=5	2 3 w=2	
+0	
+","Final solution: 11
+Schedule exported to ../../output.csv
+"
