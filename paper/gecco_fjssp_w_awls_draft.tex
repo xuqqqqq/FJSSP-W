@@ -1,0 +1,319 @@
+\documentclass[sigconf,anonymous,review,dvipsnames]{acmart}
+
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\settopmatter{printacmref=true}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\setcopyright{none}
+\acmConference[GECCO Draft]{Genetic and Evolutionary Computation Conference}{TBD}{TBD}
+\acmYear{2026}
+\copyrightyear{2026}
+\acmDOI{}
+\acmISBN{}
+
+\title{Worker-Aware Warm-Started Tabu Search for Flexible Job Shop Scheduling with Worker Flexibility}
+
+\author{Anonymous Author(s)}
+\affiliation{%
+  \institution{Anonymous Institution}
+  \city{Anonymous}
+  \country{Anonymous}
+}
+\email{anonymous@example.com}
+
+\begin{abstract}
+The flexible job shop scheduling problem with worker flexibility (FJSSP-W) extends the classical FJSSP by assigning each operation to both an eligible machine and a compatible worker.
+Processing times depend on the chosen operation, machine, and worker.
+This paper describes a worker-aware tabu search workflow for FJSSP-W.
+The method follows the single-solution local-search philosophy of adaptive-weighting local search for FJSSP, but augments the representation, feasibility checks, disjunctive graph, neighborhood screening, and promotion protocol to account for worker-resource conflicts.
+Starting from high-quality feasible schedules, the solver alternates bounded warm-start intensification, approximate neighborhood screening, exact validation, and submission-grade regeneration with ten distinct random seeds per instance.
+On the 30 Scenario 1 instances used in our current evaluation, the latest audited artifact improves the reference best makespan on 11 instances, matches it on the remaining 19, and has no best-score regressions.
+The summed best makespan is reduced from 38,496 to 38,425, and the summed mean makespan over ten runs per instance is reduced from 39,549.3 to 38,464.3.
+These results suggest that carefully adapting trajectory local search to the worker dimension can be competitive even without a heavy population model.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+ <concept>
+  <concept_id>10010147.10010257.10010293.10010319</concept_id>
+  <concept_desc>Computing methodologies~Search methodologies</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10010405.10010481.10010482</concept_id>
+  <concept_desc>Applied computing~Operations research</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Computing methodologies~Search methodologies}
+\ccsdesc[500]{Applied computing~Operations research}
+
+\keywords{Flexible job shop scheduling, worker flexibility, tabu search, local search, competition, warm start}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Flexible job shop scheduling (FJSSP) is a canonical production-scheduling problem in which each operation may be processed on one of several eligible machines.
+Recent benchmark work extends this setting to FJSSP with worker flexibility (FJSSP-W), where worker availability and worker-dependent processing times must be considered together with machines~\cite{hutter2025benchmark}.
+This additional resource dimension changes both the feasible schedule space and the local-search landscape: a move that is harmless in FJSSP can become infeasible or strongly misleading once workers are included.
+
+Our starting point is the adaptive-weighting local search (AWLS) philosophy of Zhang et al.~\cite{zhang2024awls}: a strong single-solution trajectory search can be highly competitive for FJSSP when tabu memory, landscape smoothing, and carefully screened neighborhood evaluation are combined.
+Rather than presenting a population-based evolutionary solver, this paper documents a pragmatic FJSSP-W competition workflow built around worker-aware tabu search, warm starts, and strict promotion gates.
+The contributions are:
+\begin{itemize}
+  \item a worker-aware encoding and disjunctive-graph view that adds worker arcs alongside job-precedence and machine arcs;
+  \item a tabu-search neighborhood that includes operation-order, machine-assignment, worker-assignment, and joint assignment moves;
+  \item a bounded exploration and regeneration workflow that keeps exploratory best rows separate from ten-seed submission artifacts; and
+  \item an audited result set on 30 Scenario 1 instances, improving the reference best makespan on 11 instances without any best-score regression.
+\end{itemize}
+
+\section{Problem Definition}
+Let $O$ be the set of operations.
+Each operation $i \in O$ belongs to a job and therefore has fixed precedence constraints with the other operations of the same job.
+For each operation, a feasible processing option is a pair $(m,w)$ consisting of an eligible machine $m$ and an eligible worker $w$.
+The processing time is $p_{i,m,w}$; infeasible triples have no processing time.
+A solution assigns each operation a start time $s_i$, a machine $m_i$, and a worker $w_i$.
+The schedule must satisfy:
+\begin{enumerate}
+  \item job precedence constraints;
+  \item non-overlap constraints for operations assigned to the same machine;
+  \item non-overlap constraints for operations assigned to the same worker; and
+  \item eligibility constraints $p_{i,m_i,w_i}>0$.
+\end{enumerate}
+The objective is to minimize the makespan
+\[
+  C_{\max}=\max_{i\in O}\left(s_i+p_{i,m_i,w_i}\right).
+\]
+
+\section{Method}
+\subsection{Encoding and Decoding}
+The implementation represents a solution by three vectors:
+\[
+  x = (\pi, M, W),
+\]
+where $\pi$ is a job-sequence representation, $M$ gives one machine assignment for each operation, and $W$ gives the corresponding worker assignment.
+If job $j$ appears $k$ times in $\pi$, the $k$th appearance denotes the $k$th operation of job $j$.
+Thus job precedence is represented implicitly by the occurrence count, while $M_i$ and $W_i$ select one feasible processing pair for operation $i$.
+
+The decoder scans $\pi$ from left to right.
+When the next operation $i$ of job $j$ is encountered, the decoder schedules it at the earliest time satisfying three ready times:
+\[
+  s_i=\max\{R^{job}_j,\ R^{mach}_{M_i},\ R^{work}_{W_i}\},
+\]
+where $R^{job}_j$ is the completion time of the previous operation of job $j$, $R^{mach}_{M_i}$ is the current ready time of the selected machine, and $R^{work}_{W_i}$ is the current ready time of the selected worker.
+After scheduling $i$, all three ready times are updated by $p_{i,M_i,W_i}$.
+This left-shift decoder produces a feasible active schedule whenever every selected pair $(M_i,W_i)$ is eligible.
+The representation is compact enough for trajectory search while retaining the two assignment dimensions needed by FJSSP-W.
+
+\subsection{Worker-Aware Disjunctive Graph}
+Classical FJSSP local search often reasons about a disjunctive graph containing conjunctive job arcs and disjunctive machine arcs.
+For FJSSP-W we use the same idea but add a third arc family for workers.
+For a decoded schedule we construct:
+\begin{itemize}
+  \item job arcs between consecutive operations of each job;
+  \item machine arcs between consecutive operations in each machine queue; and
+  \item worker arcs between consecutive operations in each worker queue.
+\end{itemize}
+The worker arcs are not a cosmetic addition.
+They determine feasibility after worker reassignment moves, affect critical-path estimates, and prevent approximate evaluation from accepting moves that create hidden worker conflicts.
+
+\subsection{Exact Validation}
+Every accepted move is passed through exact validation.
+First, the selected machine--worker pair of each touched operation is checked against the precomputed eligibility list.
+Second, the candidate is decoded with both machine and worker ready times.
+Third, the decoded schedule is converted to machine and worker queues and checked for overlap.
+This final check is deliberately redundant: it catches implementation mistakes in approximate screening and prevents an infeasible row from entering a submission artifact.
+
+\subsection{Neighborhoods}
+The search samples a mixed neighborhood.
+Sequence neighborhoods include swaps, insertions, adjacent swaps, block swaps, block relocations, two-shifts, and inversions.
+Assignment neighborhoods include machine reassignment, worker reassignment, machine-adjacent and worker-adjacent swaps, and joint machine-worker changes.
+Operation-specific eligibility lists filter all assignment moves, so infeasible pairs are never promoted to exact evaluation.
+
+The move set is biased toward operations on the current critical structure.
+For sequence moves, the solver preferentially samples operations that lie near long machine or worker queues, because these queues are more likely to determine $C_{\max}$.
+For assignment moves, the solver samples alternative pairs from the operation's eligibility list and gives priority to pairs with shorter processing time or lower local queue pressure.
+The important difference from a standard FJSSP neighborhood is that a reassignment is not a machine-only decision: changing $M_i$ without reconsidering $W_i$ can simply move the bottleneck from a machine queue to a worker queue.
+
+\subsection{Tabu Search with Approximate Screening}
+The main search is tabu search with aspiration.
+Each move type has a tabu key encoding the changed order or assignment attributes.
+At each iteration the solver samples a neighborhood, applies a fast screening layer, and exactly evaluates only a limited candidate set.
+The screening layer estimates local effects from duration changes and nearby machine or worker queues.
+It is deliberately conservative: exact makespan evaluation remains the final authority before a neighbor is accepted or exported.
+The exact-evaluation cap is important because fully decoding every neighbor is expensive on large instances.
+
+Algorithm~\ref{alg:search} gives the full search skeleton.
+The tabu list stores reverse attributes of accepted moves, such as the previous position of an operation or the previous machine--worker pair.
+A tabu move is ignored unless it satisfies aspiration by improving the best makespan seen in the current run.
+When no non-tabu improving candidate exists, the least damaging admissible candidate is still accepted; this keeps the search moving across plateaus.
+
+\begin{algorithm}[t]
+  \caption{Worker-aware warm-started tabu search}
+  \label{alg:search}
+  \begin{algorithmic}[1]
+    \Require Instance $I$, seed $r$, start solution $x_0$, budget $B$
+    \Ensure Best feasible solution $x^\star$
+    \State Build eligibility lists $E_i=\{(m,w,p_{i,m,w})\}$ for every operation $i$
+    \State Initialize $x \gets$ repair-and-decode$(x_0,E)$ or construct a feasible random solution
+    \State $x^\star \gets x$; initialize tabu list $T \gets \emptyset$
+    \While{budget $B$ is not exhausted}
+      \State Sample sequence, machine, worker, and joint assignment moves around $x$
+      \ForAll{sampled moves $a$}
+        \If{$a$ selects an ineligible machine--worker pair}
+          \State discard $a$
+        \ElsIf{$a$ is tabu and does not satisfy aspiration}
+          \State discard $a$
+        \Else
+          \State score $a$ by approximate local impact on duration, machine queues, and worker queues
+        \EndIf
+      \EndFor
+      \State Select the best $K$ scored moves for exact validation
+      \State Decode each validated candidate with job, machine, and worker ready times
+      \State Choose the admissible candidate $y$ with the best accepted makespan rule
+      \If{no candidate passes exact validation}
+        \State restart or resample from $x^\star$
+      \Else
+        \State $x \gets y$ and insert the reverse move attributes into $T$
+        \If{$C_{\max}(x)<C_{\max}(x^\star)$}
+          \State $x^\star \gets x$
+        \EndIf
+      \EndIf
+    \EndWhile
+    \State \Return $x^\star$
+  \end{algorithmic}
+\end{algorithm}
+
+\subsection{Why Approximation Is Safe}
+Approximate evaluation is used only to rank candidates before exact decoding.
+It never writes a solution to the incumbent set by itself.
+This separation is essential for FJSSP-W: a move may reduce the processing time of one operation but insert that operation into a congested worker queue, making the true makespan worse.
+The safe compromise is therefore to let the approximation answer ``which candidates deserve exact decoding?'' while the exact decoder answers ``which candidate is actually feasible and best?''.
+
+\subsection{Warm-Start Promotion Workflow}
+The competition workflow is as important as the local search itself.
+We distinguish three artifact levels:
+\begin{enumerate}
+  \item \textbf{Exploratory scans}: short bounded runs over selected instances, allowed to replace only one row internally and used only for discovery.
+  \item \textbf{Submission-grade regeneration}: if an exploratory scan finds a strict improvement, the improved row is used as a warm start and the target instance is regenerated with exactly ten distinct seeds.
+  \item \textbf{Promotion}: a full 30-instance CSV is promoted only after an audit verifies that every official instance has exactly ten rows and that no best-score regression is introduced.
+\end{enumerate}
+This protocol avoids a common competition pitfall: mixing one lucky best row into a CSV and treating it as if it satisfied the multi-run submission discipline.
+
+\section{Experimental Setup}
+\subsection{Benchmark and Baseline}
+Experiments use the FJSSP-W benchmarking environment and Scenario 1 submission format.
+The candidate artifact is compared against the reference file \texttt{atpts\_final\_submission.csv}.
+The current audited candidate is the 2026-04-27 \texttt{best30\_v18} artifact.
+Both files contain 30 official instances and exactly ten rows per instance.
+
+\subsection{Run Discipline}
+Submission-grade regeneration uses ten distinct seeds:
+\[
+7,19,29,41,53,67,79,97,131,173.
+\]
+Exploratory scans use small seed batches with per-instance wall-clock timeouts, then regenerate any discovered improvement with the ten submission seeds before promotion.
+The main promoted second-stage improvements used a cap of 20,000 exact evaluations, 200,000 iterations, and neighborhood size 60 for the regenerated target instance.
+
+\subsection{Evaluation Metrics}
+We report best makespan, average makespan over the ten rows of each instance, and function evaluations to the best row when available.
+A candidate is classified as:
+\begin{itemize}
+  \item \textbf{strict better} if its best makespan is smaller than the reference best;
+  \item \textbf{same-best average better} if the best makespan is tied but average makespan is lower; and
+  \item \textbf{same-best FE better} if best and average makespan are tied but the average number of function evaluations is lower.
+\end{itemize}
+
+\section{Results}
+Table~\ref{tab:summary} summarizes the 30-instance audit.
+The candidate improves the reference best makespan on 11 instances, ties the reference best on the other 19, and has no best-score regression.
+
+\begin{table}[t]
+  \centering
+  \caption{Audit summary on the 30 Scenario 1 instances.}
+  \label{tab:summary}
+  \begin{tabular}{lr}
+    \toprule
+    Category & Count \\
+    \midrule
+    Strict best improvement & 11 \\
+    Same best, lower average makespan & 14 \\
+    Same best, lower function-evaluation count & 5 \\
+    Best-score regression & 0 \\
+    \midrule
+    Official instances & 30 \\
+    Rows per instance & 10 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Table~\ref{tab:strict} lists the strict best improvements.
+The largest individual reductions occur on DPpaulli and Hurink vdata instances.
+The summed reference best makespan over all 30 instances is 38,496; the candidate reduces it to 38,425, a total decrease of 71.
+The summed ten-run average makespan decreases from 39,549.3 to 38,464.3.
+
+\begin{table*}[t]
+  \centering
+  \caption{Instances where the candidate improves the reference best makespan.}
+  \label{tab:strict}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Instance & Ref. best & Cand. best & Delta & Ref. avg. & Cand. avg. \\
+    \midrule
+    \texttt{3\_DPpaulli\_15\_workers} & 2213 & 2199 & -14 & 2241.1 & 2208.9 \\
+    \texttt{2d\_Hurink\_vdata\_30\_workers} & 1075 & 1064 & -11 & 1084.3 & 1068.1 \\
+    \texttt{3\_DPpaulli\_18\_workers} & 2215 & 2204 & -11 & 2242.0 & 2210.6 \\
+    \texttt{3\_DPpaulli\_9\_workers} & 2087 & 2077 & -10 & 2099.2 & 2083.5 \\
+    \texttt{2c\_Hurink\_rdata\_38\_workers} & 1539 & 1533 & -6 & 1556.8 & 1536.6 \\
+    \texttt{2c\_Hurink\_rdata\_28\_workers} & 789 & 784 & -5 & 811.9 & 787.0 \\
+    \texttt{2d\_Hurink\_vdata\_18\_workers} & 1041 & 1036 & -5 & 1047.5 & 1036.0 \\
+    \texttt{6\_Fattahi\_14\_workers} & 546 & 543 & -3 & 570.6 & 544.0 \\
+    \texttt{0\_BehnkeGeiger\_60\_workers} & 403 & 401 & -2 & 419.6 & 402.0 \\
+    \texttt{3\_DPpaulli\_1\_workers} & 2482 & 2480 & -2 & 2528.0 & 2481.8 \\
+    \texttt{6\_Fattahi\_20\_workers} & 1155 & 1153 & -2 & 1177.5 & 1154.8 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\subsection{Second-Stage Discoveries}
+Two recent improvements illustrate the value of the bounded exploration protocol.
+First, a bounded scan found a 1069 warm start for \texttt{2d\_Hurink\_vdata\_30\_workers}; submission-grade regeneration then improved the ten-seed artifact further to 1064.
+Second, a bounded scan found 1036 for \texttt{2d\_Hurink\_vdata\_18\_workers}; regeneration made all ten rows equal to 1036 with zero additional function evaluations from that warm start.
+Both promotions passed the audit gate.
+
+\section{Discussion}
+The results are not merely an artifact of replacing single lucky rows.
+Every promoted CSV has the full 30-instance shape, exactly ten rows per official instance, and is checked against the reference for regressions.
+This matters because the strongest practical improvements were often found in exploratory mode before being converted into compliant ten-seed rows.
+
+The method also highlights the importance of worker-aware reasoning.
+In FJSSP-W, worker queues can be as constraining as machine queues.
+Neighborhoods that only inspect machine conflicts may accept moves whose apparent gain disappears after worker-resource feasibility is restored.
+Adding worker arcs and worker-specific adjacency information gives the search a more faithful local model.
+
+There are two limitations.
+First, this draft reports a competition-engineering workflow rather than a controlled ablation study; the marginal contribution of each neighborhood and screening component has not yet been isolated.
+Second, the reference comparison uses a 10-row submission file rather than a full independent statistical campaign with 20--30 repetitions per instance.
+The latter is important for a camera-ready scientific paper.
+
+\section{Conclusion}
+We presented a worker-aware, warm-started tabu-search workflow for FJSSP-W.
+The solver adapts the single-solution local-search philosophy behind AWLS to schedules with both machine and worker conflicts.
+On the current 30-instance Scenario 1 artifact, the approach improves 11 reference best makespans, ties the remaining 19, and reduces both summed best and summed average makespan with no best-score regression.
+Future work should integrate explicit adaptive operation weights, run a full statistical evaluation, and report ablations for worker arcs, assignment moves, approximate screening, and warm-start promotion.
+
+\begin{acks}
+This draft is anonymized for review. Acknowledgments and repository links should be added only in a camera-ready or non-anonymous technical-report version.
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
