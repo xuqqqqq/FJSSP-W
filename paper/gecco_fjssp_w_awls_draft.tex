@@ -64,7 +64,7 @@ Flexible job shop scheduling (FJSSP) is a canonical production-scheduling proble
 Recent benchmark work extends this setting to FJSSP with worker flexibility (FJSSP-W), where worker availability and worker-dependent processing times must be considered together with machines~\cite{hutter2025benchmark}.
 This additional resource dimension changes both the feasible schedule space and the local-search landscape: a move that is harmless in FJSSP can become infeasible or strongly misleading once workers are included.
 
-Our starting point is the adaptive-weighting local search (AWLS) philosophy of Zhang et al.~\cite{zhang2024awls}: a strong single-solution trajectory search can be highly competitive for FJSSP when tabu memory, landscape smoothing, and carefully screened neighborhood evaluation are combined.
+Our starting point is the adaptive-weighting local search (AWLS) algorithm of Zhang et al.~\cite{zhang2024awls}: a strong single-solution trajectory search can be highly competitive for FJSSP when tabu memory, critical-path neighborhoods, approximate move evaluation, and adaptive operation weights are combined.
 Rather than presenting a population-based evolutionary solver, this paper documents a pragmatic FJSSP-W competition workflow built around worker-aware tabu search, warm starts, and strict promotion gates.
 The contributions are:
 \begin{itemize}
@@ -93,6 +93,19 @@ The objective is to minimize the makespan
 \]
 
 \section{Method}
+\subsection{From AWLS to FJSSP-W}
+The original AWLS is designed for the classical FJSSP, where each operation is assigned to a machine and inserted into a position on that machine.
+It maintains a single incumbent solution, repeatedly selects a promising move from critical-path neighborhoods, forbids recent move attributes by a tabu list, and uses a fast estimated makespan to avoid exact decoding of every neighbor.
+Its distinctive component is adaptive weighting: each operation has a cumulative weight and an idle count, and the estimator treats the induced penalty as additional processing time.
+When a move fails to improve the incumbent, the moved operation becomes less attractive in later estimates; when a new best solution is found, the weights are reset.
+This gives AWLS a long-term diversification mechanism complementary to tabu tenure.
+
+FJSSP-W changes the object being moved.
+A move can no longer be described only as ``operation $i$ goes to machine $m$ at position $k$''.
+It must also specify a compatible worker and a feasible worker-queue position, and its effect must be evaluated on both machine and worker resource graphs.
+Our solver therefore keeps the AWLS single-solution and tabu-search structure, but generalizes the state, graph, neighborhoods, screening score, and validation step to the worker dimension.
+The current submission-grade artifact uses this conservative worker-aware variant with exact validation as the acceptance authority; full adaptive operation weighting is retained as a natural next ablation rather than claimed as the source of the reported results.
+
 \subsection{Encoding and Decoding}
 The implementation represents a solution by three vectors:
 \[
@@ -123,6 +136,8 @@ For a decoded schedule we construct:
 \end{itemize}
 The worker arcs are not a cosmetic addition.
 They determine feasibility after worker reassignment moves, affect critical-path estimates, and prevent approximate evaluation from accepting moves that create hidden worker conflicts.
+In this graph, a critical operation is an operation lying on at least one longest path from the dummy source to the dummy sink.
+Because a longest path may now pass through either a machine arc or a worker arc, the critical structure can change after a pure worker move even when all machine queues are unchanged.
 
 \subsection{Exact Validation}
 Every accepted move is passed through exact validation.
@@ -142,6 +157,11 @@ For sequence moves, the solver preferentially samples operations that lie near l
 For assignment moves, the solver samples alternative pairs from the operation's eligibility list and gives priority to pairs with shorter processing time or lower local queue pressure.
 The important difference from a standard FJSSP neighborhood is that a reassignment is not a machine-only decision: changing $M_i$ without reconsidering $W_i$ can simply move the bottleneck from a machine queue to a worker queue.
 
+Conceptually, the original AWLS move $(i,m,k)$ is replaced by two families.
+Resource moves change the selected pair $(M_i,W_i)$, and sequence moves relocate or reorder operations inside a machine queue, a worker queue, or both.
+For a joint assignment move, the solver first chooses a feasible pair $(m,w)\in E_i$ and then tests insertion positions induced by the current machine and worker queues.
+This avoids generating a large number of impossible triples and keeps the exact-evaluation budget focused on candidates that can plausibly survive both resource constraints.
+
 \subsection{Tabu Search with Approximate Screening}
 The main search is tabu search with aspiration.
 Each move type has a tabu key encoding the changed order or assignment attributes.
@@ -149,6 +169,14 @@ At each iteration the solver samples a neighborhood, applies a fast screening la
 The screening layer estimates local effects from duration changes and nearby machine or worker queues.
 It is deliberately conservative: exact makespan evaluation remains the final authority before a neighbor is accepted or exported.
 The exact-evaluation cap is important because fully decoding every neighbor is expensive on large instances.
+
+The screening score follows the role played by the AWLS estimator, but with two resource queues instead of one.
+For a candidate move $a$ touching operation $i$, the score combines the processing-time change, local insertion pressure on the target machine, local insertion pressure on the target worker, and an optional AWLS-style operation penalty:
+\[
+  \hat{C}(a) = \Delta p_i(a) + \rho_m(a) + \rho_w(a) + \lambda Z_i .
+\]
+Here $\rho_m$ and $\rho_w$ are local queue-pressure estimates, and $Z_i$ denotes the adaptive additional processing time derived from operation weight and idle count in AWLS.
+In the conservative setting used for the present artifact, $\lambda=0$; the formula is included to make clear how the original adaptive weighting mechanism plugs into the worker-aware estimator.
 
 Algorithm~\ref{alg:search} gives the full search skeleton.
 The tabu list stores reverse attributes of accepted moves, such as the previous position of an operation or the previous machine--worker pair.
@@ -163,7 +191,7 @@ When no non-tabu improving candidate exists, the least damaging admissible candi
     \Ensure Best feasible solution $x^\star$
     \State Build eligibility lists $E_i=\{(m,w,p_{i,m,w})\}$ for every operation $i$
     \State Initialize $x \gets$ repair-and-decode$(x_0,E)$ or construct a feasible random solution
-    \State $x^\star \gets x$; initialize tabu list $T \gets \emptyset$
+    \State $x^\star \gets x$; initialize tabu list $T \gets \emptyset$ and AWLS weights $Z_i \gets 0$
     \While{budget $B$ is not exhausted}
       \State Sample sequence, machine, worker, and joint assignment moves around $x$
       \ForAll{sampled moves $a$}
@@ -172,7 +200,7 @@ When no non-tabu improving candidate exists, the least damaging admissible candi
         \ElsIf{$a$ is tabu and does not satisfy aspiration}
           \State discard $a$
         \Else
-          \State score $a$ by approximate local impact on duration, machine queues, and worker queues
+          \State score $a$ by duration change, machine pressure, worker pressure, and optional $Z_i$
         \EndIf
       \EndFor
       \State Select the best $K$ scored moves for exact validation
@@ -181,7 +209,7 @@ When no non-tabu improving candidate exists, the least damaging admissible candi
       \If{no candidate passes exact validation}
         \State restart or resample from $x^\star$
       \Else
-        \State $x \gets y$ and insert the reverse move attributes into $T$
+        \State $x \gets y$; insert reverse move attributes into $T$; update optional AWLS weights
         \If{$C_{\max}(x)<C_{\max}(x^\star)$}
           \State $x^\star \gets x$
         \EndIf
@@ -196,6 +224,7 @@ Approximate evaluation is used only to rank candidates before exact decoding.
 It never writes a solution to the incumbent set by itself.
 This separation is essential for FJSSP-W: a move may reduce the processing time of one operation but insert that operation into a congested worker queue, making the true makespan worse.
 The safe compromise is therefore to let the approximation answer ``which candidates deserve exact decoding?'' while the exact decoder answers ``which candidate is actually feasible and best?''.
+This is stricter than the original FJSSP setting because an estimator that is reasonable on machine queues alone can still miss a newly created worker conflict.
 
 \subsection{Warm-Start Promotion Workflow}
 The competition workflow is as important as the local search itself.
@@ -299,7 +328,7 @@ Neighborhoods that only inspect machine conflicts may accept moves whose apparen
 Adding worker arcs and worker-specific adjacency information gives the search a more faithful local model.
 
 There are two limitations.
-First, this draft reports a competition-engineering workflow rather than a controlled ablation study; the marginal contribution of each neighborhood and screening component has not yet been isolated.
+First, this draft reports a competition-engineering workflow rather than a controlled ablation study; the marginal contribution of each neighborhood, the worker-aware screening terms, and the original AWLS adaptive-weighting term has not yet been isolated.
 Second, the reference comparison uses a 10-row submission file rather than a full independent statistical campaign with 20--30 repetitions per instance.
 The latter is important for a camera-ready scientific paper.
 
@@ -307,7 +336,7 @@ The latter is important for a camera-ready scientific paper.
 We presented a worker-aware, warm-started tabu-search workflow for FJSSP-W.
 The solver adapts the single-solution local-search philosophy behind AWLS to schedules with both machine and worker conflicts.
 On the current 30-instance Scenario 1 artifact, the approach improves 11 reference best makespans, ties the remaining 19, and reduces both summed best and summed average makespan with no best-score regression.
-Future work should integrate explicit adaptive operation weights, run a full statistical evaluation, and report ablations for worker arcs, assignment moves, approximate screening, and warm-start promotion.
+Future work should re-enable and tune the full AWLS adaptive operation-weight term for FJSSP-W, run a full statistical evaluation, and report ablations for worker arcs, assignment moves, approximate screening, and warm-start promotion.
 
 \begin{acks}
 This draft is anonymized for review. Acknowledgments and repository links should be added only in a camera-ready or non-anonymous technical-report version.
