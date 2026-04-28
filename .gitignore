@@ -3,6 +3,12 @@ __pycache__/
 .omx/
 AWLS.zip
 output.csv
+paper/build_*/
+
+# Third-party benchmark data generated from public external documents.
+# Keep the converter and notes in git; keep raw/converted instance payloads local
+# unless redistribution rights are checked.
+instances/External_DFJSP_Gong2018/*.fjs
 
 AWLS/.idea/
 AWLS/.vs/

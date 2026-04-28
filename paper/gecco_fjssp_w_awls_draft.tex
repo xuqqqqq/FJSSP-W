@@ -15,7 +15,7 @@
 \acmDOI{}
 \acmISBN{}
 
-\title{Worker-Aware Warm-Started Tabu Search for Flexible Job Shop Scheduling with Worker Flexibility}
+\title{Worker-Aware Critical-Path Tabu Search for Flexible Job Shop Scheduling with Worker Flexibility}
 
 \author{Anonymous Author(s)}
 \affiliation{%
@@ -26,14 +26,15 @@
 \email{anonymous@example.com}
 
 \begin{abstract}
-The flexible job shop scheduling problem with worker flexibility (FJSSP-W) extends the classical FJSSP by assigning each operation to both an eligible machine and a compatible worker.
-Processing times depend on the chosen operation, machine, and worker.
-This paper describes a worker-aware tabu search workflow for FJSSP-W.
-The method follows the single-solution local-search philosophy of adaptive-weighting local search for FJSSP, but augments the representation, feasibility checks, disjunctive graph, neighborhood screening, and promotion protocol to account for worker-resource conflicts.
-Starting from high-quality feasible schedules, the solver alternates bounded warm-start intensification, approximate neighborhood screening, exact validation, and submission-grade regeneration with ten distinct random seeds per instance.
+Classical flexible job shop scheduling (FJSSP) models machine flexibility but usually assumes that human operators are either unlimited or irrelevant.
+That assumption is too weak for human-machine collaborative workshops, where an operation is feasible only after choosing a compatible machine-worker pair and where the processing time depends on the full operation-machine-worker triple.
+FJSSP with worker flexibility (FJSSP-W), also studied as the dual-resource constrained FJSP (DRCFJSP), therefore introduces a third decision layer and a third family of resource-conflict arcs.
+This paper studies how a strong trajectory local search for FJSSP can be upgraded into a dual-resource local search without hiding worker feasibility inside post-processing.
+The proposed method uses a worker-aware disjunctive graph, critical structure, neighborhood, approximate screening layer, and exact validation gate.
+Starting from high-quality feasible schedules, the solver alternates bounded warm-start intensification, approximate neighborhood screening, exact worker-aware validation, and submission-grade regeneration with ten distinct random seeds per instance.
 On the 30 Scenario 1 instances used in our current evaluation, the latest audited artifact improves the reference best makespan on 11 instances, matches it on the remaining 19, and has no best-score regressions.
 The summed best makespan is reduced from 38,496 to 38,425, and the summed mean makespan over ten runs per instance is reduced from 39,549.3 to 38,464.3.
-These results suggest that carefully adapting trajectory local search to the worker dimension can be competitive even without a heavy population model.
+These results suggest that carefully adapting critical-path local search to the worker dimension can be competitive even without a heavy population model.
 \end{abstract}
 
 \begin{CCSXML}
@@ -54,18 +55,28 @@ These results suggest that carefully adapting trajectory local search to the wor
 \ccsdesc[500]{Computing methodologies~Search methodologies}
 \ccsdesc[500]{Applied computing~Operations research}
 
-\keywords{Flexible job shop scheduling, worker flexibility, tabu search, local search, competition, warm start}
+\keywords{Flexible job shop scheduling, worker flexibility, dual-resource scheduling, tabu search, local search, warm start}
 
 \begin{document}
 \maketitle
 
 \section{Introduction}
 Flexible job shop scheduling (FJSSP) is a canonical production-scheduling problem in which each operation may be processed on one of several eligible machines.
-Recent benchmark work extends this setting to FJSSP with worker flexibility (FJSSP-W), where worker availability and worker-dependent processing times must be considered together with machines~\cite{hutter2025benchmark}.
-This additional resource dimension changes both the feasible schedule space and the local-search landscape: a move that is harmless in FJSSP can become infeasible or strongly misleading once workers are included.
+This abstraction is useful but incomplete for real human-machine collaborative workshops.
+In such shops, a machine is not automatically usable: it must be paired with a worker who can operate it, and the duration of an operation can change with the selected worker.
+Ignoring the worker dimension can therefore produce schedules that are optimistic on paper but infeasible or brittle on the shop floor.
 
-Our starting point is the adaptive-weighting local search (AWLS) algorithm of Zhang et al.~\cite{zhang2024awls}: a strong single-solution trajectory search can be highly competitive for FJSSP when tabu memory, critical-path neighborhoods, approximate move evaluation, and adaptive operation weights are combined.
-Rather than presenting a population-based evolutionary solver, this paper documents a pragmatic FJSSP-W competition workflow built around worker-aware tabu search, warm starts, and strict promotion gates.
+FJSSP with worker flexibility (FJSSP-W), also called DRCFJSP in recent literature, extends each operation decision from a machine choice to an operation-machine-worker triple~\cite{gong2018workerflex,gong2020habc,li2025ceamcp,hutter2025benchmark}.
+This extension is not just a larger assignment table.
+It introduces a third decision variable, a third set of disjunctive resource conflicts, and new failure modes for local search.
+A move that shortens an operation on the selected machine may overload a worker queue; a sequence change that is neutral on machines may still change the longest path through worker arcs.
+
+Recent studies make the model richer by adding green indicators, worker learning, fatigue, distributed factories, or other production features.
+The FJSSP-W competition setting keeps the core scientific test clean: dual-resource feasibility and makespan minimization.
+It is therefore a good setting for asking whether the strongest ideas from FJSSP trajectory search can be made genuinely worker-aware rather than merely repaired after the fact.
+
+This paper documents a pragmatic FJSSP-W competition workflow built around worker-aware critical-path tabu search, warm starts, and strict promotion gates.
+The implementation is influenced by the single-solution local-search lineage of Zhang et al.~\cite{zhang2024awls}, but the contribution claimed here is the worker-aware upgrade: representation, graph, moves, screening, and validation all explicitly see worker resources.
 The contributions are:
 \begin{itemize}
   \item a worker-aware encoding and disjunctive-graph view that adds worker arcs alongside job-precedence and machine arcs;
@@ -93,17 +104,17 @@ The objective is to minimize the makespan
 \]
 
 \section{Method}
-\subsection{From AWLS to FJSSP-W}
-The original AWLS is designed for the classical FJSSP, where each operation is assigned to a machine and inserted into a position on that machine.
+\subsection{From Machine-Only to Dual-Resource Local Search}
+Classical FJSSP local search is designed around the idea that each operation is assigned to a machine and inserted into a position on that machine.
 It maintains a single incumbent solution, repeatedly selects a promising move from critical-path neighborhoods, forbids recent move attributes by a tabu list, and uses a fast estimated makespan to avoid exact decoding of every neighbor.
-Its distinctive component is adaptive weighting: each operation has a cumulative weight and an idle count, and the estimator treats the induced penalty as additional processing time.
+In the AWLS lineage, a distinctive component is adaptive weighting: each operation has a cumulative weight and an idle count, and the estimator treats the induced penalty as additional processing time.
 When a move fails to improve the incumbent, the moved operation becomes less attractive in later estimates; when a new best solution is found, the weights are reset.
 This gives AWLS a long-term diversification mechanism complementary to tabu tenure.
 
 FJSSP-W changes the object being moved.
 A move can no longer be described only as ``operation $i$ goes to machine $m$ at position $k$''.
 It must also specify a compatible worker and a feasible worker-queue position, and its effect must be evaluated on both machine and worker resource graphs.
-Our solver therefore keeps the AWLS single-solution and tabu-search structure, but generalizes the state, graph, neighborhoods, screening score, and validation step to the worker dimension.
+Our solver therefore keeps the single-solution tabu-search structure, but generalizes the state, graph, neighborhoods, screening score, and validation step to the worker dimension.
 The current submission-grade artifact uses this conservative worker-aware variant with exact validation as the acceptance authority; full adaptive operation weighting is retained as a natural next ablation rather than claimed as the source of the reported results.
 
 \subsection{Encoding and Decoding}

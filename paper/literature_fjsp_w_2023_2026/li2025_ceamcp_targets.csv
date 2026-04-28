@@ -1,0 +1,40 @@
+﻿instance,ceam_cp_best,ceam_cp_average,source_table
+DFJSP01,7,7,Table 3 / Table 7
+DFJSP02,9,9,Table 3 / Table 7
+DFJSP03,4,4,Table 3 / Table 7
+DFJSP04,31,31.6,Table 3 / Table 7
+DFJSP05,19,19.3,Table 3 / Table 7
+DFJSP06,189,189,Table 3 / Table 7
+DFJSP07,47,48.2,Table 3 / Table 7
+DFJSP08,154,157.9,Table 3 / Table 7
+DFJSP09,45,45.7,Table 3 / Table 7
+DFJSP10,124,127.4,Table 3 / Table 7
+DFJSP11,459,459.3,Table 3 / Table 7
+DFJSP12,279,284.3,Table 3 / Table 7
+DFJSP13,174,180.6,Table 3 / Table 7
+DFJSP01-double,9,9,Table 4
+DFJSP02-double,14,14.9,Table 4
+DFJSP03-double,8,8,Table 4
+DFJSP04-double,57,58.9,Table 4
+DFJSP05-double,37,37.4,Table 4
+DFJSP06-double,378,378,Table 4
+DFJSP07-double,93,95.9,Table 4
+DFJSP08-double,306,309.8,Table 4
+DFJSP09-double,83,84.8,Table 4
+DFJSP10-double,256,257.9,Table 4
+DFJSP11-double,918,918.1,Table 4
+DFJSP12-double,553,557.2,Table 4
+DFJSP13-double,334,348.3,Table 4
+DFJSP01-triple,13,13.1,Table 5
+DFJSP02-triple,21,21.8,Table 5
+DFJSP03-triple,11,11.5,Table 5
+DFJSP04-triple,85,86.3,Table 5
+DFJSP05-triple,54,55.2,Table 5
+DFJSP06-triple,567,567,Table 5
+DFJSP07-triple,140,143,Table 5
+DFJSP08-triple,459,471.9,Table 5
+DFJSP09-triple,121,123.9,Table 5
+DFJSP10-triple,375,383.3,Table 5
+DFJSP11-triple,1377,1377.4,Table 5
+DFJSP12-triple,828,839.4,Table 5
+DFJSP13-triple,509,517.7,Table 5
