@@ -1,0 +1,5 @@
+﻿run_tag=2026-04-28_192734
+worker_pid=9756
+watcher_pid=15944
+started=2026-04-28T19:29:03
+poll_seconds=300

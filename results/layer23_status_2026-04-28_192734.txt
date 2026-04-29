@@ -1,0 +1,1 @@
+﻿PAUSED 2026-04-29T12:46:28: user requested shutdown pause after preserving partial Layer 2/3 results
