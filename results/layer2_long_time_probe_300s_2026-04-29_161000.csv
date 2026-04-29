@@ -1,0 +1,77 @@
+layer,source,competition_instance,family,seed,time_limit_sec,makespan,status,returncode,elapsed_sec,lb,ub,stdout_tail,stderr_tail
+layer2_public402,Behnke42,0_BehnkeGeiger_42_workers,BehnkeGeiger,1033,300,92,OK,0,300.966,0,80,"	
+4	3 2 w=24	4 3 w=52	2 3 w=19	5 3 w=20	
+0	
+2	8 1 w=57	5 2 w=71	
+3	0 1 w=68	0 2 w=16	0 3 w=89	
+0	
+0	
+0	
+0	
+4	7 2 w=39	7 3 w=5	1 3 w=1	8 3 w=23	
+0	
+0	
+0	
+0	
+0	
+0	
+0	
+3	1 1 w=62	9 2 w=89	9 3 w=2	
+0	
+0	
+2	7 1 w=66	2 1 w=11	
+0	
+0	
+0	
+0	
+0	
+0	
+0	
+0	
+0	
+3	4 2 w=3	2 2 w=29	8 2 w=49	
+0	
+0	
+0	
+0	
+0	
+0	
+2	4 1 w=51	6 2 w=42	
+0	
+0	
+3	3 1 w=18	1 2 w=49	6 3 w=87	
+2	9 1 w=17	3 3 w=38	
+0	
+0	
+0	
+0	
+0	
+0	
+0	
+0	
+0	
+3	3 4 w=25	9 4 w=37	8 4 w=77	
+3	7 4 w=45	6 4 w=26	5 4 w=18	
+1	1 4 w=56	
+3	4 4 w=7	2 4 w=9	0 4 w=31	
+","Final solution: 92
+Schedule exported to ../../output.csv
+"
+layer2_public402,Fattahi20,6_Fattahi_20_workers,Fattahi,1013,300,1162,OK,0,300.161,880,1147,"makespan=1162
+4	2 0 w=6	4 0 w=9	1 0 w=11	0 0 w=2	
+5	3 0 w=7	11 0 w=4	5 0 w=10	10 0 w=10	1 1 w=10	
+6	6 0 w=3	8 0 w=6	6 1 w=9	11 1 w=9	8 1 w=11	10 1 w=9	
+7	7 0 w=11	9 0 w=1	3 2 w=4	5 1 w=0	0 1 w=0	0 2 w=7	5 3 w=9	
+8	3 1 w=10	2 2 w=2	4 2 w=5	9 1 w=7	9 2 w=1	1 3 w=6	10 2 w=3	6 3 w=4	
+6	7 1 w=8	7 2 w=3	3 3 w=8	1 2 w=5	8 3 w=8	10 3 w=6	
+7	2 1 w=7	4 1 w=3	6 2 w=11	11 2 w=4	8 2 w=4	5 2 w=11	9 3 w=2	
+5	2 3 w=6	4 3 w=1	7 3 w=6	11 3 w=10	0 3 w=0	
+","Final solution: 1162
+Schedule exported to ../../output.csv
+"
+layer2_public402,BrandimarteMk12,1_Brandimarte_12_workers,Brandimarte,1039,300,484,OK,0,299.740,146,471,"	6 4 w=10	4 4 w=3	3 3 w=4	3 4 w=1	2 3 w=2	10 1 w=9	15 4 w=7	24 4 w=2	11 3 w=1	8 3 w=9	18 7 w=4	7 4 w=11	28 2 w=12	22 6 w=1	27 4 w=9	11 5 w=0	5 5 w=8	18 8 w=0	0 5 w=12	
+13	26 0 w=9	9 2 w=6	6 3 w=6	24 1 w=14	9 3 w=5	1 1 w=10	14 0 w=0	0 1 w=7	10 2 w=4	29 3 w=3	29 5 w=13	25 5 w=0	2 5 w=8	
+23	12 0 w=13	0 0 w=1	6 1 w=13	4 2 w=5	15 0 w=12	23 2 w=9	25 2 w=14	16 2 w=14	24 2 w=5	4 6 w=11	14 1 w=6	19 2 w=12	25 3 w=5	25 4 w=5	23 4 w=7	16 3 w=4	0 2 w=6	26 2 w=0	1 5 w=9	14 3 w=4	19 5 w=12	14 4 w=1	27 5 w=10	
+","Final solution: 484
+Schedule exported to ../../output.csv
+"
