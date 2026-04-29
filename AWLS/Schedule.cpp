@@ -106,6 +106,56 @@ bool is_structurally_legal_move(const Schedule& schedule, const NeighborhoodMove
         return false;
     }
 }
+
+int select_contextual_worker(const Graph& graph,
+    const OperationList& operation_list,
+    const std::vector<OperationTimeInfo>& time_info,
+    const int operation_id,
+    const int machine,
+    const int base_start_time)
+{
+    const auto& workers = operation_list.workers_for_machine(operation_id, machine);
+    int best_worker = -1;
+    int best_end_time = INT_MAX;
+    int best_duration = INT_MAX;
+
+    auto consider_worker = [&](const int worker) {
+        const int duration = operation_list.worker_duration(operation_id, machine, worker);
+        if (duration <= 0)
+        {
+            return;
+        }
+
+        int worker_ready_time = base_start_time;
+        const int prev_worker_op = graph.last_worker_operation[worker];
+        if (prev_worker_op != -1)
+        {
+            worker_ready_time = std::max(worker_ready_time, time_info[prev_worker_op].end_time);
+        }
+
+        const int end_time = worker_ready_time + duration;
+        if (end_time < best_end_time ||
+            (end_time == best_end_time && duration < best_duration) ||
+            (end_time == best_end_time && duration == best_duration && worker < best_worker))
+        {
+            best_worker = worker;
+            best_end_time = end_time;
+            best_duration = duration;
+        }
+    };
+
+    for (const int worker : workers)
+    {
+        consider_worker(worker);
+    }
+
+    if (best_worker == -1)
+    {
+        consider_worker(operation_list.best_worker_for_machine(operation_id, machine));
+    }
+
+    return best_worker;
+}
 }
 
 
@@ -151,7 +201,12 @@ void Schedule::update_time()
         }
         if (chosen_worker < 0 || operation_list->worker_duration(curr_node, machine, chosen_worker) <= 0)
         {
-            chosen_worker = operation_list->best_worker_for_machine(curr_node, machine);
+            chosen_worker = select_contextual_worker(
+                graph, *operation_list, time_info, curr_node, machine, start_time);
+            if (chosen_worker < 0)
+            {
+                chosen_worker = operation_list->best_worker_for_machine(curr_node, machine);
+            }
         }
         if (chosen_worker < 0)
         {
@@ -286,13 +341,9 @@ void Schedule::make_move(const NeighborhoodMove& move)
     graph.make_move(move);
     if (move.method == Method::CHANGE_MACHINE_BACK || move.method == Method::CHANGE_MACHINE_FRONT)
     {
-        const int machine = graph.on_machine[move.which];
-        // Re-evaluate worker choice on the new machine instead of keeping a merely feasible carry-over worker.
-        graph.on_worker[move.which] = operation_list->best_worker_for_machine(move.which, machine);
-        if (operation_list->worker_duration(move.which, machine, graph.on_worker[move.which]) <= 0)
-        {
-            graph.on_worker[move.which] = operation_list->best_worker_for_machine(move.which, machine);
-        }
+        // Clear the worker so update_time can re-pick the earliest-finishing feasible worker
+        // for the new machine under the current worker chain context.
+        graph.on_worker[move.which] = -1;
     }
     else if (move.method == Method::CHANGE_WORKER)
     {
@@ -888,4 +939,3 @@ int same_machine_evaluate(const Schedule& current_schedule, const NeighborhoodMo
     }
 }
 #endif
-
