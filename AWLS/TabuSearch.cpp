@@ -25,6 +25,7 @@ constexpr bool kEnableFrontToBackMoves = false;
 constexpr bool kEnableWorkerChangeNeighborhood = true;
 constexpr bool kEnableChangeMachineNeighborhood = true;
 constexpr size_t kWorkerChangeShortlistSize = 2;
+constexpr size_t kWorkerChangeStrongSignalShortlistSize = 3;
 constexpr unsigned long long kMaxTabuIterationsPerPass = 5000;
 
 bool should_stop_search(const std::atomic<bool>* stop_flag)
@@ -80,6 +81,44 @@ std::vector<int> collect_worker_shortlist(const Schedule& schedule,
     }
 
     return shortlist;
+}
+
+bool has_strong_worker_alternative(const Schedule& schedule,
+    const int op,
+    const int machine,
+    const int current_worker)
+{
+    const auto& operation_list = *schedule.get_operation_list_ptr();
+    const int current_duration = operation_list.worker_duration(op, machine, current_worker);
+    if (current_duration <= 0)
+    {
+        return false;
+    }
+
+    int best_alternative_duration = INT_MAX;
+    for (const int worker : operation_list.workers_for_machine(op, machine))
+    {
+        if (worker == current_worker)
+        {
+            continue;
+        }
+
+        const int duration = operation_list.worker_duration(op, machine, worker);
+        if (duration <= 0)
+        {
+            continue;
+        }
+
+        best_alternative_duration = std::min(best_alternative_duration, duration);
+    }
+
+    if (best_alternative_duration == INT_MAX)
+    {
+        return false;
+    }
+
+    const int minimum_improvement = std::max(1, current_duration / 20);
+    return best_alternative_duration + minimum_improvement < current_duration;
 }
 
 bool validate_machine_graph(const Graph& graph, int makespan, const char* phase)
@@ -700,13 +739,19 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
 
                     const bool is_block_endpoint = block.operations.size() <= 2 ||
                         i == 0 || i + 1 == static_cast<int>(block.operations.size());
+                    const int current_worker = current_schedule.graph.on_worker[op];
+                    const bool has_strong_alternative = has_strong_worker_alternative(
+                        current_schedule, op, machine_id, current_worker);
                     if (kEnableWorkerChangeNeighborhood && current_schedule.operation_list->has_workers() &&
-                        is_block_endpoint && !machine_block_worker_probe[op])
+                        (is_block_endpoint || has_strong_alternative) && !machine_block_worker_probe[op])
                     {
                         machine_block_worker_probe[op] = 1;
-                        const int current_worker = current_schedule.graph.on_worker[op];
+                        const size_t shortlist_size =
+                            has_strong_alternative && !is_block_endpoint
+                            ? kWorkerChangeStrongSignalShortlistSize
+                            : kWorkerChangeShortlistSize;
                         const auto shortlist = collect_worker_shortlist(
-                            current_schedule, op, machine_id, current_worker, kWorkerChangeShortlistSize);
+                            current_schedule, op, machine_id, current_worker, shortlist_size);
                         for (const int worker : shortlist)
                         {
                             if (should_stop_search(stop_flag))

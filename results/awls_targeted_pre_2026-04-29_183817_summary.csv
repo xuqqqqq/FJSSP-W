@@ -1,0 +1,4 @@
+key,source,competition_instance,family,runs,ok_runs,best,average,lb,ub,best_minus_lb,best_minus_ub,status
+3_DPpaulli_15_workers,DPpaulli15,3_DPpaulli_15_workers,DPpaulli,3,3,3639,3812.667,1221,2071,2418,1568,OK
+5_Kacem_4_workers,Kacem4,5_Kacem_4_workers,Kacem,3,3,12,12.667,10,11,2,1,OK
+6_Fattahi_20_workers,Fattahi20,6_Fattahi_20_workers,Fattahi,3,3,1269,1378,880,1147,389,122,OK
