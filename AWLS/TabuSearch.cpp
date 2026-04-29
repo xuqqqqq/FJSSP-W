@@ -698,8 +698,10 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
                         awls_trace::log("TabuSearch::find_move eval BACK done which=", move.which, " where=", move.where);
                     }
 
+                    const bool is_block_endpoint = block.operations.size() <= 2 ||
+                        i == 0 || i + 1 == static_cast<int>(block.operations.size());
                     if (kEnableWorkerChangeNeighborhood && current_schedule.operation_list->has_workers() &&
-                        !machine_block_worker_probe[op])
+                        is_block_endpoint && !machine_block_worker_probe[op])
                     {
                         machine_block_worker_probe[op] = 1;
                         const int current_worker = current_schedule.graph.on_worker[op];
