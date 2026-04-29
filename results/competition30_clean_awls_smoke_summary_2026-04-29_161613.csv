@@ -1,0 +1,4 @@
+key,source,competition_instance,family,runs,ok_runs,best,average,lb,ub,best_minus_lb,best_minus_ub,status
+0_BehnkeGeiger_42_workers,Behnke42,0_BehnkeGeiger_42_workers,BehnkeGeiger,1,1,95,95,0,80,95,15,OK
+0_BehnkeGeiger_46_workers,Behnke46,0_BehnkeGeiger_46_workers,BehnkeGeiger,1,1,135,135,67,108,68,27,OK
+0_BehnkeGeiger_60_workers,Behnke60,0_BehnkeGeiger_60_workers,BehnkeGeiger,1,0,,,74,431,,,PARTIAL_OR_ERROR

@@ -17,6 +17,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--results-csv", required=True)
     parser.add_argument("--output-csv", required=True)
     parser.add_argument("--output-md", default="")
+    parser.add_argument(
+        "--clean-mode",
+        action="store_true",
+        help="Ignore reference/current columns that may come from external submissions.",
+    )
     return parser.parse_args()
 
 
@@ -43,7 +48,11 @@ def key_for(row: Dict[str, str]) -> str:
     return row.get("competition_instance") or row["source"]
 
 
-def summarize(manifest_rows: List[Dict[str, str]], result_rows: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def summarize(
+    manifest_rows: List[Dict[str, str]],
+    result_rows: List[Dict[str, str]],
+    clean_mode: bool = False,
+) -> List[Dict[str, str]]:
     manifest_by_key = {key_for(row): row for row in manifest_rows}
     results_by_key: Dict[str, List[Dict[str, str]]] = defaultdict(list)
     for row in result_rows:
@@ -59,8 +68,8 @@ def summarize(manifest_rows: List[Dict[str, str]], result_rows: List[Dict[str, s
         avg = mean(makespans) if makespans else None
         ub = maybe_float(manifest.get("ub", ""))
         lb = maybe_float(manifest.get("lb", ""))
-        reference_best = maybe_float(manifest.get("reference_best", ""))
-        current_best = maybe_float(manifest.get("current_best", ""))
+        reference_best = None if clean_mode else maybe_float(manifest.get("reference_best", ""))
+        current_best = None if clean_mode else maybe_float(manifest.get("current_best", ""))
 
         summaries.append(
             {
@@ -90,10 +99,10 @@ def summarize(manifest_rows: List[Dict[str, str]], result_rows: List[Dict[str, s
     return summaries
 
 
-def write_csv(path: Path, rows: Iterable[Dict[str, str]]) -> None:
+def write_csv(path: Path, rows: Iterable[Dict[str, str]], clean_mode: bool = False) -> None:
     rows = list(rows)
     path.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = [
+    common_fieldnames = [
         "key",
         "source",
         "competition_instance",
@@ -104,45 +113,83 @@ def write_csv(path: Path, rows: Iterable[Dict[str, str]]) -> None:
         "average",
         "lb",
         "ub",
+    ]
+    reference_fieldnames = [
         "reference_best",
         "current_best",
+    ]
+    comparison_fieldnames = [
         "best_minus_lb",
         "best_minus_ub",
+    ]
+    reference_comparison_fieldnames = [
         "best_minus_reference",
         "best_minus_current",
+    ]
+    fieldnames = common_fieldnames + comparison_fieldnames
+    if not clean_mode:
+        fieldnames = (
+            common_fieldnames
+            + reference_fieldnames
+            + comparison_fieldnames
+            + reference_comparison_fieldnames
+        )
+    fieldnames += [
         "status",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 
 
-def write_md(path: Path, rows: List[Dict[str, str]]) -> None:
+def write_md(path: Path, rows: List[Dict[str, str]], clean_mode: bool = False) -> None:
     solved_or_better = [
         row for row in rows if row["best_minus_ub"] != "" and float(row["best_minus_ub"]) <= 0
     ]
-    improved_reference = [
-        row
-        for row in rows
-        if row["best_minus_reference"] != "" and float(row["best_minus_reference"]) < 0
-    ]
+    title = "# Clean Layer Result Summary" if clean_mode else "# Layer Result Summary"
     lines = [
-        "# Layer Result Summary",
+        title,
         "",
         f"- Instances summarized: {len(rows)}",
         f"- At or below provided UB: {len(solved_or_better)}",
-        f"- Strictly better than reference best: {len(improved_reference)}",
-        "",
-        "| Instance | Family | Runs | Best | Avg | LB | UB | Best-UB | Best-Reference | Status |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
+    if clean_mode:
+        lines.append("- Clean mode: external submission reference/current columns were ignored.")
+    else:
+        improved_reference = [
+            row
+            for row in rows
+            if row["best_minus_reference"] != "" and float(row["best_minus_reference"]) < 0
+        ]
+        lines.append(f"- Strictly better than reference best: {len(improved_reference)}")
+    lines.append("")
+    if clean_mode:
+        lines.extend(
+            [
+                "| Instance | Family | Runs | Best | Avg | LB | UB | Best-UB | Status |",
+                "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "| Instance | Family | Runs | Best | Avg | LB | UB | Best-UB | Best-Reference | Status |",
+                "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+            ]
+        )
     for row in rows:
         label = row["competition_instance"] or row["source"]
-        lines.append(
-            f"| `{label}` | {row['family']} | {row['runs']} | {row['best']} | {row['average']} | "
-            f"{row['lb']} | {row['ub']} | {row['best_minus_ub']} | {row['best_minus_reference']} | `{row['status']}` |"
-        )
+        if clean_mode:
+            lines.append(
+                f"| `{label}` | {row['family']} | {row['runs']} | {row['best']} | {row['average']} | "
+                f"{row['lb']} | {row['ub']} | {row['best_minus_ub']} | `{row['status']}` |"
+            )
+        else:
+            lines.append(
+                f"| `{label}` | {row['family']} | {row['runs']} | {row['best']} | {row['average']} | "
+                f"{row['lb']} | {row['ub']} | {row['best_minus_ub']} | {row['best_minus_reference']} | `{row['status']}` |"
+            )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -150,10 +197,10 @@ def main() -> None:
     args = parse_args()
     manifest_rows = read_csv(Path(args.manifest))
     result_rows = read_csv(Path(args.results_csv))
-    summaries = summarize(manifest_rows, result_rows)
-    write_csv(Path(args.output_csv), summaries)
+    summaries = summarize(manifest_rows, result_rows, clean_mode=args.clean_mode)
+    write_csv(Path(args.output_csv), summaries, clean_mode=args.clean_mode)
     if args.output_md:
-        write_md(Path(args.output_md), summaries)
+        write_md(Path(args.output_md), summaries, clean_mode=args.clean_mode)
     print(f"Wrote {len(summaries)} summary rows to {args.output_csv}")
     if args.output_md:
         print(f"Wrote Markdown summary to {args.output_md}")
