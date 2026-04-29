@@ -4,6 +4,7 @@
 
 #ifndef FJSP_TABUSEARCH_H
 #define FJSP_TABUSEARCH_H
+#include <atomic>
 #include "NeighborhoodMove.h"
 #include "Schedule.h"
 #include "TabuList.h"
@@ -36,7 +37,7 @@ public:
 
     void search(const Schedule& schedule, const std::atomic<bool>& stop_flag);
 
-    [[nodiscard]] NeighborhoodMove find_move();
+    [[nodiscard]] NeighborhoodMove find_move(const std::atomic<bool>* stop_flag = nullptr);
     void make_move(const NeighborhoodMove& move);
 
     Schedule best_schedule{};

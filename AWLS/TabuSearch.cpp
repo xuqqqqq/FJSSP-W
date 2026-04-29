@@ -25,6 +25,11 @@ constexpr bool kEnableWorkerChangeNeighborhood = true;
 constexpr bool kEnableChangeMachineNeighborhood = true;
 constexpr unsigned long long kMaxTabuIterationsPerPass = 5000;
 
+bool should_stop_search(const std::atomic<bool>* stop_flag)
+{
+    return stop_flag != nullptr && stop_flag->load(std::memory_order_relaxed);
+}
+
 bool validate_machine_graph(const Graph& graph, int makespan, const char* phase)
 {
     if (!awls_trace::enabled())
@@ -400,7 +405,11 @@ void TabuSearch::search(const Schedule& schedule, const std::atomic<bool>& stop_
                 " current=", current_schedule.get_makespan(),
                 " best=", best_schedule.get_makespan());
         }
-        auto move = find_move();
+        if (stop_flag.load(std::memory_order_relaxed))
+        {
+            break;
+        }
+        auto move = find_move(&stop_flag);
         if (move.which == 0)
         {
             awls_trace::log("TabuSearch::search empty move iteration=", iteration);
@@ -556,7 +565,7 @@ void TabuSearch::same_machine_evaluate_and_push(const Schedule& schedule, const 
 }
 
 
-NeighborhoodMove TabuSearch::find_move()
+NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
 {
     awls_trace::log("TabuSearch::find_move begin current=", current_schedule.get_makespan());
     std::vector<NeighborhoodMove> all_moves;
@@ -565,6 +574,10 @@ NeighborhoodMove TabuSearch::find_move()
     int min_makespan = INT_MAX;
     while (true)
     {
+        if (should_stop_search(stop_flag))
+        {
+            return {};
+        }
         if (!find_all)
             update_critical_block();
         else
@@ -573,6 +586,10 @@ NeighborhoodMove TabuSearch::find_move()
             " find_all=", find_all ? 1 : 0);
         for (const auto& block : critical_blocks)
         {
+            if (should_stop_search(stop_flag))
+            {
+                return {};
+            }
             if (block.operations.empty())
             {
                 continue;
@@ -594,7 +611,7 @@ NeighborhoodMove TabuSearch::find_move()
             }
             if (block.resource == CriticalBlockResource::Machine)
             {
-                for (int i = 0; i < static_cast<int>(block.operations.size()); i++)
+                for (int i = 0; i < static_cast<int>(block.operations.size()) && !should_stop_search(stop_flag); i++)
                 {
                     const int op = block.operations[i];
                     if (op <= 0 || op >= current_schedule.graph.node_num - 1)
@@ -608,7 +625,7 @@ NeighborhoodMove TabuSearch::find_move()
                     }
 
                     for (int cur_op = current_schedule.graph.first_machine_operation[machine_id];
-                        cur_op != -1 && cur_op != block.operations.front() && kEnablePrefixFrontMoves;
+                        cur_op != -1 && cur_op != block.operations.front() && kEnablePrefixFrontMoves && !should_stop_search(stop_flag);
                         cur_op = current_schedule.graph.machine_successor[cur_op])
                     {
                         NeighborhoodMove move{ Method::FRONT, op, cur_op };
@@ -618,7 +635,9 @@ NeighborhoodMove TabuSearch::find_move()
                     }
 
 
-                    for (int cur_op = current_schedule.graph.machine_successor[block.operations.back()]; cur_op != -1; cur_op = current_schedule.graph.machine_successor[cur_op])
+                    for (int cur_op = current_schedule.graph.machine_successor[block.operations.back()];
+                        cur_op != -1 && !should_stop_search(stop_flag);
+                        cur_op = current_schedule.graph.machine_successor[cur_op])
                     {
                         NeighborhoodMove move{ Method::BACK, op, cur_op };
                         awls_trace::log("TabuSearch::find_move eval BACK which=", move.which, " where=", move.where);
@@ -641,7 +660,7 @@ NeighborhoodMove TabuSearch::find_move()
                 }
                 else
                 {
-                    for (int j = 2; j < n && kEnableFrontToBackMoves; j++)
+                    for (int j = 2; j < n && kEnableFrontToBackMoves && !should_stop_search(stop_flag); j++)
                     {
                         if (block.operations.front() <= 0 || block.operations.front() >= current_schedule.graph.node_num - 1 ||
                             block.operations[j] <= 0 || block.operations[j] >= current_schedule.graph.node_num - 1)
@@ -653,7 +672,7 @@ NeighborhoodMove TabuSearch::find_move()
                         same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
                         awls_trace::log("TabuSearch::find_move eval front_to_back done which=", move.which, " where=", move.where);
                     }
-                    for (int j = n - 2; j >= 0 && kEnableBackToFrontMoves; j--)
+                    for (int j = n - 2; j >= 0 && kEnableBackToFrontMoves && !should_stop_search(stop_flag); j--)
                     {
                         if (block.operations.back() <= 0 || block.operations.back() >= current_schedule.graph.node_num - 1 ||
                             block.operations[j] <= 0 || block.operations[j] >= current_schedule.graph.node_num - 1)
@@ -667,7 +686,7 @@ NeighborhoodMove TabuSearch::find_move()
                     }
                     if (kEnableMiddleBlockMoves)
                     {
-                        for (int j = 1; j < n - 1; j++)
+                        for (int j = 1; j < n - 1 && !should_stop_search(stop_flag); j++)
                         {
                             if (block.operations[j] <= 0 || block.operations[j] >= current_schedule.graph.node_num - 1 ||
                                 block.operations.front() <= 0 || block.operations.front() >= current_schedule.graph.node_num - 1)
@@ -682,7 +701,7 @@ NeighborhoodMove TabuSearch::find_move()
                     }
                     if (kEnableMiddleBlockMoves)
                     {
-                        for (int j = 1; j < n - 1; j++)
+                        for (int j = 1; j < n - 1 && !should_stop_search(stop_flag); j++)
                         {
                             if (block.operations[j] <= 0 || block.operations[j] >= current_schedule.graph.node_num - 1 ||
                                 block.operations.back() <= 0 || block.operations.back() >= current_schedule.graph.node_num - 1)
@@ -701,6 +720,10 @@ NeighborhoodMove TabuSearch::find_move()
             {
                 for (const int op : block.operations)
                 {
+                    if (should_stop_search(stop_flag))
+                    {
+                        return {};
+                    }
                     if (!current_schedule.is_critical_operation(op))
                     {
                         continue;
@@ -711,6 +734,10 @@ NeighborhoodMove TabuSearch::find_move()
                     const auto& worker_candidates = current_schedule.operation_list->workers_for_machine(op, machine);
                     for (const int worker : worker_candidates)
                     {
+                        if (should_stop_search(stop_flag))
+                        {
+                            return {};
+                        }
                         if (worker == current_worker)
                         {
                             continue;
@@ -725,7 +752,7 @@ NeighborhoodMove TabuSearch::find_move()
 
         if (!find_all && kEnableChangeMachineNeighborhood)
         {
-            for (int op = 1; op < current_schedule.graph.node_num - 1; ++op)
+            for (int op = 1; op < current_schedule.graph.node_num - 1 && !should_stop_search(stop_flag); ++op)
             {
                 if (!current_schedule.is_critical_operation(op))
                 {
@@ -735,6 +762,10 @@ NeighborhoodMove TabuSearch::find_move()
                 const int old_machine = current_schedule.graph.on_machine[op];
                 for (const int candidate_machine : (*current_schedule.operation_list)[op].candidates)
                 {
+                    if (should_stop_search(stop_flag))
+                    {
+                        return {};
+                    }
                     if (candidate_machine == old_machine)
                     {
                         continue;
@@ -749,7 +780,9 @@ NeighborhoodMove TabuSearch::find_move()
                     NeighborhoodMove front_move{ Method::CHANGE_MACHINE_FRONT, op, first_target_op };
                     same_machine_evaluate_and_push(current_schedule, front_move, all_moves, best_moves, min_makespan);
 
-                    for (int target_op = first_target_op; target_op != -1; target_op = current_schedule.graph.machine_successor[target_op])
+                    for (int target_op = first_target_op;
+                        target_op != -1 && !should_stop_search(stop_flag);
+                        target_op = current_schedule.graph.machine_successor[target_op])
                     {
                         NeighborhoodMove back_move{ Method::CHANGE_MACHINE_BACK, op, target_op };
                         same_machine_evaluate_and_push(current_schedule, back_move, all_moves, best_moves, min_makespan);
@@ -1087,5 +1120,3 @@ void TabuSearch::update_all_critical_block()
         }
     }
 }
-
-

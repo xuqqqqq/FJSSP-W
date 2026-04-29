@@ -1,0 +1,7 @@
+layer,source,competition_instance,family,seed,time_limit_sec,makespan,status,returncode,elapsed_sec,lb,ub,stdout_tail,stderr_tail
+layer1_competition30,Behnke60,0_BehnkeGeiger_60_workers,BehnkeGeiger,1009,10,579,OK,0,10.158,74,431,"w=43	
+27	60 4 w=29	56 4 w=2	62 4 w=18	52 4 w=77	99 4 w=13	2 4 w=84	11 4 w=37	76 4 w=56	84 4 w=27	90 4 w=9	98 4 w=39	91 4 w=33	14 4 w=8	1 4 w=61	78 4 w=57	21 4 w=68	27 4 w=29	0 4 w=80	23 4 w=39	57 4 w=8	75 4 w=35	61 4 w=65	92 4 w=10	7 4 w=15	17 4 w=64	59 4 w=69	36 4 w=44	
+23	38 4 w=64	25 4 w=78	85 4 w=71	37 4 w=75	65 4 w=32	6 4 w=88	5 4 w=32	81 4 w=79	88 4 w=22	26 4 w=86	97 4 w=84	73 4 w=5	9 4 w=40	22 4 w=5	54 4 w=23	41 4 w=26	40 4 w=14	28 4 w=77	67 4 w=5	42 4 w=54	74 4 w=40	69 4 w=25	15 4 w=13	
+","Final solution: 579
+Schedule exported to ../../output.csv
+"
