@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <set>
+#include <vector>
 #include "RandomGenerator.h"
 #include "Schedule.h"
 #include "DebugTrace.h"
@@ -23,11 +24,62 @@ constexpr bool kEnablePrefixFrontMoves = true;
 constexpr bool kEnableFrontToBackMoves = false;
 constexpr bool kEnableWorkerChangeNeighborhood = true;
 constexpr bool kEnableChangeMachineNeighborhood = true;
+constexpr size_t kWorkerChangeShortlistSize = 2;
 constexpr unsigned long long kMaxTabuIterationsPerPass = 5000;
 
 bool should_stop_search(const std::atomic<bool>* stop_flag)
 {
     return stop_flag != nullptr && stop_flag->load(std::memory_order_relaxed);
+}
+
+std::vector<int> collect_worker_shortlist(const Schedule& schedule,
+    const int op,
+    const int machine,
+    const int exclude_worker,
+    const size_t max_candidates)
+{
+    std::vector<std::pair<int, int>> ranked_workers;
+    const auto& operation_list = *schedule.get_operation_list_ptr();
+    const auto& worker_candidates = operation_list.workers_for_machine(op, machine);
+    ranked_workers.reserve(worker_candidates.size());
+
+    for (const int worker : worker_candidates)
+    {
+        if (worker == exclude_worker)
+        {
+            continue;
+        }
+
+        const int duration = operation_list.worker_duration(op, machine, worker);
+        if (duration <= 0)
+        {
+            continue;
+        }
+        ranked_workers.emplace_back(duration, worker);
+    }
+
+    std::sort(ranked_workers.begin(), ranked_workers.end(),
+        [](const std::pair<int, int>& lhs, const std::pair<int, int>& rhs) {
+            if (lhs.first != rhs.first)
+            {
+                return lhs.first < rhs.first;
+            }
+            return lhs.second < rhs.second;
+        });
+
+    std::vector<int> shortlist;
+    shortlist.reserve(std::min(max_candidates, ranked_workers.size()));
+    for (const auto& [duration, worker] : ranked_workers)
+    {
+        (void)duration;
+        shortlist.push_back(worker);
+        if (shortlist.size() >= max_candidates)
+        {
+            break;
+        }
+    }
+
+    return shortlist;
 }
 
 bool validate_machine_graph(const Graph& graph, int makespan, const char* phase)
@@ -570,6 +622,7 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
     awls_trace::log("TabuSearch::find_move begin current=", current_schedule.get_makespan());
     std::vector<NeighborhoodMove> all_moves;
     std::vector<NeighborhoodMove> best_moves;
+    std::vector<char> machine_block_worker_probe(current_schedule.graph.node_num, 0);
     bool find_all = false;
     int min_makespan = INT_MAX;
     while (true)
@@ -644,6 +697,25 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
                         same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
                         awls_trace::log("TabuSearch::find_move eval BACK done which=", move.which, " where=", move.where);
                     }
+
+                    if (kEnableWorkerChangeNeighborhood && current_schedule.operation_list->has_workers() &&
+                        !machine_block_worker_probe[op])
+                    {
+                        machine_block_worker_probe[op] = 1;
+                        const int current_worker = current_schedule.graph.on_worker[op];
+                        const auto shortlist = collect_worker_shortlist(
+                            current_schedule, op, machine_id, current_worker, kWorkerChangeShortlistSize);
+                        for (const int worker : shortlist)
+                        {
+                            if (should_stop_search(stop_flag))
+                            {
+                                return {};
+                            }
+
+                            NeighborhoodMove move{ Method::CHANGE_WORKER, op, worker };
+                            same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
+                        }
+                    }
                 }
 
                 if (const int n = static_cast<int>(block.operations.size()); n == 2)
@@ -715,6 +787,7 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
                         }
                     }
                 }
+
             }
             else if (block.resource == CriticalBlockResource::Worker && kEnableWorkerChangeNeighborhood)
             {
