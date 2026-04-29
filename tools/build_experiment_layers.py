@@ -298,7 +298,7 @@ def main() -> None:
 
     data_rows = read_csv(data_csv)
     data_by_source = {row["source"]: row for row in data_rows}
-    best_rows = {row["Instance"]: row for row in read_csv(best_csv, delimiter=";")}
+    best_rows = {row["Instance"].lower(): row for row in read_csv(best_csv, delimiter=";")}
 
     competition_labels = unique_competition_instances(competition_csv)
     reference_summaries = summarize_submission(reference_csv)
@@ -314,7 +314,7 @@ def main() -> None:
             base_row(
                 "layer1_competition30",
                 data_by_source[source],
-                best_rows.get(best_known_name_from_source(source)),
+                best_rows.get(best_known_name_from_source(source).lower()),
                 root,
                 public_benchmark_path(root, source),
                 label,
@@ -332,7 +332,7 @@ def main() -> None:
             base_row(
                 "layer2_public402",
                 data_row,
-                best_rows.get(best_known_name_from_source(source)),
+                best_rows.get(best_known_name_from_source(source).lower()),
                 root,
                 public_benchmark_path(root, source),
                 competition_by_source.get(source, ""),
@@ -351,7 +351,7 @@ def main() -> None:
             base_row(
                 "layer3_ablation_representatives",
                 data_row,
-                best_rows.get(best_known_name_from_source(source)),
+                best_rows.get(best_known_name_from_source(source).lower()),
                 root,
                 public_benchmark_path(root, source),
                 competition_by_source.get(source, ""),
