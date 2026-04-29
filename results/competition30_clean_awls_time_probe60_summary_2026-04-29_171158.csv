@@ -1,0 +1,4 @@
+key,source,competition_instance,family,runs,ok_runs,best,average,lb,ub,best_minus_lb,best_minus_ub,status
+1_Brandimarte_12_workers,BrandimarteMk12,1_Brandimarte_12_workers,Brandimarte,2,2,497,500,146,471,351,26,OK
+5_Kacem_4_workers,Kacem4,5_Kacem_4_workers,Kacem,2,2,11,11.500,10,11,1,0,OK
+6_Fattahi_20_workers,Fattahi20,6_Fattahi_20_workers,Fattahi,2,2,1182,1202.500,880,1147,302,35,OK
