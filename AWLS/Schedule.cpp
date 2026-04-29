@@ -287,6 +287,8 @@ void Schedule::make_move(const NeighborhoodMove& move)
     if (move.method == Method::CHANGE_MACHINE_BACK || move.method == Method::CHANGE_MACHINE_FRONT)
     {
         const int machine = graph.on_machine[move.which];
+        // Re-evaluate worker choice on the new machine instead of keeping a merely feasible carry-over worker.
+        graph.on_worker[move.which] = operation_list->best_worker_for_machine(move.which, machine);
         if (operation_list->worker_duration(move.which, machine, graph.on_worker[move.which]) <= 0)
         {
             graph.on_worker[move.which] = operation_list->best_worker_for_machine(move.which, machine);
@@ -886,5 +888,4 @@ int same_machine_evaluate(const Schedule& current_schedule, const NeighborhoodMo
     }
 }
 #endif
-
 
