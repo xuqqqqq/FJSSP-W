@@ -100,6 +100,7 @@ C:\Users\ASUS\Downloads\FJSSP-W-Benchmarking-main\FJSSP-W-Benchmarking-main
             & omx exec `
                 --dangerously-bypass-approvals-and-sandbox `
                 -C "$Root" `
+                -m "gpt-5.4" `
                 -c 'model_reasoning_effort="high"' `
                 -o "$CodexFinal" `
                 "$Prompt" *> "$CodexLog"
