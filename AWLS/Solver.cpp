@@ -15,23 +15,31 @@ int construction_sample_count(const Instance& instance)
     {
         return 4;
     }
-    return 1;
-}
 
-Schedule sample_best_construction(const Instance& instance,
-    const std::shared_ptr<OperationList>& operation_list,
-    const int sample_count)
-{
-    Schedule best_schedule(instance, operation_list);
-    for (int i = 1; i < sample_count; ++i)
+    int candidate_count = 0;
+    for (const auto& job : instance.jobs)
     {
-        Schedule candidate(instance, operation_list);
-        if (candidate.get_makespan() < best_schedule.get_makespan())
+        for (const auto& operation : job)
         {
-            best_schedule = std::move(candidate);
+            candidate_count += static_cast<int>(operation.size());
         }
     }
-    return best_schedule;
+    const double relative_machine_flexibility = static_cast<double>(candidate_count) /
+        std::max(1, instance.op_num * instance.machine_num);
+
+    if (instance.machine_num < 50 && instance.worker_num < 50 && relative_machine_flexibility < 0.3)
+    {
+        return 1;
+    }
+    if (instance.op_num <= 100)
+    {
+        return 8;
+    }
+    if (instance.op_num <= 300)
+    {
+        return 3;
+    }
+    return 2;
 }
 }
 
@@ -53,9 +61,13 @@ void Solver::initialize_population(const Instance& instance, std::shared_ptr<Ope
 {
     // ���������б������������ҵ����
     operation_list = std::make_shared<OperationList>(instance);
-    // ������Ⱥ��СΪ1
-    population.resize(1);
-    population[0] = sample_best_construction(instance, operation_list, construction_sample_count(instance));
+    const int population_size = construction_sample_count(instance);
+    population.clear();
+    population.reserve(population_size);
+    for (int i = 0; i < population_size; ++i)
+    {
+        population.emplace_back(instance, operation_list);
+    }
 }
 
 
@@ -63,7 +75,7 @@ void Solver::update_best_solution(const std::vector<Schedule>& population, Sched
 {
     // ����Ⱥ��һ��������Ѱ��makespan��С��
     const auto& temp_best =
-        std::min_element(population.begin(), population.begin() + 1,
+        std::min_element(population.begin(), population.end(),
             [](const Schedule& a, const Schedule& b) { return a.get_makespan() < b.get_makespan(); });
     
     // ����ҵ����õĽ⣬�������Ž�
@@ -116,7 +128,7 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
     // ��¼���Ž���㷨״̬
     Schedule best_solution = population.front();    // ��ʼ���Ž���Ϊ��һ������
     //std::vector<Schedule> children(2);              // �Ӵ���������
-    std::vector<Schedule> schedule(1);              // ������
+    std::vector<Schedule> schedule(population.size());              // ������
     int gen = 1;                                    // ����������
 
     // ��ѭ����ֱ��ʱ��ľ����ҵ����Ž�
@@ -136,14 +148,14 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
         // ��������������֮��ִ��˫��·�����������������Ӵ�
         //children[0] = path_relinking(population[0], population[1]);  // �Ӹ���0������1��·��
         //children[1] = path_relinking(population[1], population[0]);  // �Ӹ���1������0��·��
-        schedule[0] = population[0];
+        schedule = population;
 
         // ========== ����2: ����ʱ����㣨���д���� ==========
         // ����ģʽѡ���л��и����Ӵ���ʱ�䰲��
         if (mode == PARALLEL)
         {
 #pragma omp parallel for  // OpenMP���л�
-            for (int i = 0; i < 1; ++i)
+            for (int i = 0; i < static_cast<int>(schedule.size()); ++i)
             {
                 schedule[i].update_time();
                 //children[i].update_time();  // ���¼���ÿ�������Ŀ�ʼ�ͽ���ʱ��
@@ -151,7 +163,10 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
         }
         else  // ����ģʽ
         {
-            schedule[0].update_time();
+            for (auto& candidate_schedule : schedule)
+            {
+                candidate_schedule.update_time();
+            }
             if (gen <= 5 || gen % 50 == 0)
             {
                 awls_trace::log("Solver::Solve after update_time gen=", gen,
@@ -163,12 +178,17 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
 
         // ========== ����3: �����������ֲ��Ż��� ==========
         // ����һ����������ʵ�����Ż�
-        std::vector<TabuSearch> TS(1, TabuSearch{ instance });
+        std::vector<TabuSearch> TS;
+        TS.reserve(schedule.size());
+        for (size_t i = 0; i < schedule.size(); ++i)
+        {
+            TS.emplace_back(instance);
+        }
 
         if (mode == PARALLEL)
         {
 #pragma omp parallel for
-            for (int i = 0; i < 1; ++i)
+            for (int i = 0; i < static_cast<int>(schedule.size()); ++i)
             {
                 // ��ÿ���Ӵ�ִ�н�������������ֹͣ��־�Ա���ǰ��ֹ
                 TS[i].search(schedule[i], stop_flag);
@@ -182,7 +202,10 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
                 awls_trace::log("Solver::Solve before TS gen=", gen,
                     " schedule0=", schedule[0].get_makespan());
             }
-            TS[0].search(schedule[0], stop_flag);
+            for (size_t i = 0; i < schedule.size() && !stop_flag.load(std::memory_order_relaxed); ++i)
+            {
+                TS[i].search(schedule[i], stop_flag);
+            }
             if (gen <= 5 || gen % 50 == 0)
             {
                 awls_trace::log("Solver::Solve after TS gen=", gen,
@@ -197,14 +220,20 @@ void Solver::Solve(const Instance& instance, long long time_limit, int best, Sol
         if (mode == PARALLEL)
         {
 #pragma omp parallel for
-            for (int i = 0; i < 1; ++i)
+            for (int i = 0; i < static_cast<int>(population.size()); ++i)
             {
                 population[i] = TS[i].best_schedule;  // ����Ϊ���������ҵ�����ѵ���
             }
         }
         else
         {
-            population[0] = TS[0].best_schedule;
+            for (size_t i = 0; i < population.size(); ++i)
+            {
+                if (TS[i].best_schedule.get_makespan() > 0)
+                {
+                    population[i] = TS[i].best_schedule;
+                }
+            }
             //population[1] = TS[1].best_schedule;
         }
 

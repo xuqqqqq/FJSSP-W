@@ -1,0 +1,7 @@
+key,source,competition_instance,family,runs,ok_runs,best,average,lb,ub,best_minus_lb,best_minus_ub,status
+0_BehnkeGeiger_42_workers,Behnke42,0_BehnkeGeiger_42_workers,BehnkeGeiger,3,3,91,93.667,0,80,91,11,OK
+0_BehnkeGeiger_46_workers,Behnke46,0_BehnkeGeiger_46_workers,BehnkeGeiger,3,3,117,121.667,67,108,50,9,OK
+1_Brandimarte_12_workers,BrandimarteMk12,1_Brandimarte_12_workers,Brandimarte,3,3,498,521.667,146,471,352,27,OK
+5_Kacem_3_workers,Kacem3,5_Kacem_3_workers,Kacem,3,3,7,7,7,7,0,0,OK
+5_Kacem_4_workers,Kacem4,5_Kacem_4_workers,Kacem,3,3,11,11.667,10,11,1,0,OK
+6_Fattahi_20_workers,Fattahi20,6_Fattahi_20_workers,Fattahi,3,3,1184,1211.667,880,1147,304,37,OK
