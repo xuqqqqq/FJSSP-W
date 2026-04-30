@@ -26,10 +26,10 @@ public:
     }
     Schedule() = default;
 
-    Schedule(const Instance& instance, const std::shared_ptr<OperationList>& operation_list) :
+    Schedule(const Instance& instance, const std::shared_ptr<OperationList>& operation_list, int construction_variant = 0) :
         operation_list(operation_list)
     {
-        graph.random_init(instance, *operation_list);
+        graph.random_init(instance, *operation_list, construction_variant);
         time_info.resize(graph.node_num);
         assigned_worker.assign(graph.node_num, -1);
         assigned_duration.assign(graph.node_num, 0);

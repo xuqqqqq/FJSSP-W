@@ -158,8 +158,9 @@ std::deque<int> Graph::topological_sort(bool reverse, const bool include_worker)
 }
 
 #ifdef GREEDY_INIT
-void Graph::random_init(const Instance& instance, const OperationList& operation_list)
+void Graph::random_init(const Instance& instance, const OperationList& operation_list, int construction_variant)
 {
+    (void)construction_variant;
     const int job_num = instance.job_num;
     const int machine_num = instance.machine_num;
     this->node_num = static_cast<int>(operation_list.operations.size());
@@ -367,7 +368,7 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
 }
 
 #else
-void Graph::random_init(const Instance& instance, const OperationList& operation_list)
+void Graph::random_init(const Instance& instance, const OperationList& operation_list, int construction_variant)
 {
     const int job_num = instance.job_num;
     const int machine_num = instance.machine_num;
@@ -421,83 +422,113 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
         }
     }
 
-    // Keep some purely random starts; several FJSSP-W families benefit from
-    // diversity more than a consistently greedy dispatching rule.
+    // Deterministic worker-aware dispatching construction.  This mirrors the
+    // action-masking idea in rl1.md: at each step only the next unscheduled
+    // operation of each job is legal, and only feasible machine-worker pairs
+    // are evaluated.
     std::vector<int> candidates = first_job_operation;
-    int candidate_count = 0;
-    for (int op = 1; op < this->node_num - 1; ++op)
-    {
-        candidate_count += static_cast<int>(operation_list[op].candidates.size());
-    }
-    const double relative_machine_flexibility = static_cast<double>(candidate_count) /
-        std::max(1, (this->node_num - 2) * machine_num);
-    const bool high_resource_parallelism = machine_num >= 50 || operation_list.worker_num() >= 50;
-    const bool high_machine_flexibility = relative_machine_flexibility >= 0.3;
-    const bool use_worker_aware_greedy = high_resource_parallelism || high_machine_flexibility;
-    const bool use_random_construction =
-        !use_worker_aware_greedy || (high_resource_parallelism && RAND_INT(100) < 35);
-    if (use_random_construction)
-    {
-        while (!candidates.empty())
-        {
-            const int index = RAND_INT(static_cast<int>(candidates.size()));
-            const int curr_op = candidates[index];
-            const auto& curr_candidates = operation_list[curr_op].candidates;
-            const int curr_machine = curr_candidates[RAND_INT(static_cast<int>(curr_candidates.size()))];
-            const auto& worker_candidates = operation_list.workers_for_machine(curr_op, curr_machine);
-            const int curr_worker = worker_candidates.empty()
-                ? std::max(0, operation_list.best_worker_for_machine(curr_op, curr_machine))
-                : worker_candidates[RAND_INT(static_cast<int>(worker_candidates.size()))];
-            on_machine[curr_op] = curr_machine;
-            on_worker[curr_op] = curr_worker;
-            machine_operation_count[curr_machine]++;
-            if (first_machine_operation[curr_machine] == -1)
-            {
-                first_machine_operation[curr_machine] = curr_op;
-                last_machine_operation[curr_machine] = curr_op;
-                on_machine_pos_vec[curr_op] = 0;
-            }
-            else
-            {
-                int pre_machine_op = last_machine_operation[curr_machine];
-                last_machine_operation[curr_machine] = curr_op;
-                machine_successor[pre_machine_op] = curr_op;
-                machine_predecessor[curr_op] = pre_machine_op;
-                on_machine_pos_vec[curr_op] = machine_operation_count[curr_machine] - 1;
-            }
-            if (job_successor[curr_op] == this->node_num - 1)
-            {
-                candidates[index] = candidates.back();
-                candidates.pop_back();
-            }
-            else
-            {
-                candidates[index] = job_successor[curr_op];
-            }
-        }
-        return;
-    }
-
-    // Build a worker-aware randomized greedy initial sequence.
     std::vector<int> machine_ready_time(machine_num, 0);
     std::vector<int> worker_ready_time(operation_list.worker_num(), 0);
     std::vector<int> job_ready_time(job_num, 0);
     std::vector<int> machine_assigned_ops(machine_num, 0);
+    std::vector<int> worker_assigned_ops(operation_list.worker_num(), 0);
+
+    auto min_duration_for_operation = [&](const int op) {
+        int best_duration = INT_MAX;
+        for (const int machine : operation_list[op].candidates)
+        {
+            const int duration = operation_list.duration(op, machine);
+            if (duration > 0)
+            {
+                best_duration = std::min(best_duration, duration);
+            }
+        }
+        return best_duration == INT_MAX ? 0 : best_duration;
+    };
+
+    auto remaining_min_work_after = [&](const int op) {
+        int remaining = 0;
+        int guard = 0;
+        for (int next = job_successor[op]; next != -1 && next != this->node_num - 1 && guard <= this->node_num;
+             next = job_successor[next], ++guard)
+        {
+            remaining += min_duration_for_operation(next);
+        }
+        return remaining;
+    };
 
     struct ConstructionChoice
     {
         int operation;
         int machine;
         int worker;
+        int start_time;
         int completion_time;
-        bool unused_machine;
+        int duration;
+        int resource_load;
+        int remaining_tail;
+        long long priority_score;
+    };
+
+    auto score_choice = [construction_variant](const int start_time, const int completion_time, const int duration,
+        const int resource_load, const int remaining_tail) -> long long {
+        switch (construction_variant % 6)
+        {
+        case 1:
+            return 8LL * completion_time - remaining_tail;
+        case 2:
+            return 4LL * (completion_time + remaining_tail) + resource_load;
+        case 3:
+            return 4LL * start_time + duration + resource_load;
+        case 4:
+            return 4LL * duration + completion_time + resource_load;
+        case 5:
+            return 4LL * completion_time + 2LL * resource_load - 2LL * remaining_tail;
+        default:
+            return completion_time;
+        }
+    };
+
+    auto is_better_choice = [](const ConstructionChoice& lhs, const ConstructionChoice& rhs) {
+        if (lhs.priority_score != rhs.priority_score)
+        {
+            return lhs.priority_score < rhs.priority_score;
+        }
+        if (lhs.completion_time != rhs.completion_time)
+        {
+            return lhs.completion_time < rhs.completion_time;
+        }
+        if (lhs.start_time != rhs.start_time)
+        {
+            return lhs.start_time < rhs.start_time;
+        }
+        if (lhs.duration != rhs.duration)
+        {
+            return lhs.duration < rhs.duration;
+        }
+        if (lhs.resource_load != rhs.resource_load)
+        {
+            return lhs.resource_load < rhs.resource_load;
+        }
+        if (lhs.remaining_tail != rhs.remaining_tail)
+        {
+            return lhs.remaining_tail > rhs.remaining_tail;
+        }
+        if (lhs.operation != rhs.operation)
+        {
+            return lhs.operation < rhs.operation;
+        }
+        if (lhs.machine != rhs.machine)
+        {
+            return lhs.machine < rhs.machine;
+        }
+        return lhs.worker < rhs.worker;
     };
 
     while (!candidates.empty())
     {
-        std::vector<ConstructionChoice> choices;
-        int best_completion_time = INT_MAX;
-        bool has_unused_machine_choice = false;
+        ConstructionChoice selected_choice{ -1, -1, -1, 0, INT_MAX, INT_MAX, INT_MAX, 0, LLONG_MAX };
+        bool has_choice = false;
 
         for (const int op : candidates)
         {
@@ -507,6 +538,7 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
             }
 
             const int job_id = operation_list[op].job_id;
+            const int remaining_tail = remaining_min_work_after(op);
             for (const int machine : operation_list[op].candidates)
             {
                 const auto& worker_candidates = operation_list.workers_for_machine(op, machine);
@@ -518,16 +550,29 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
                     {
                         duration = operation_list.duration(op, machine);
                     }
+                    if (duration <= 0)
+                    {
+                        continue;
+                    }
                     int start_time = std::max(machine_ready_time[machine], job_ready_time[job_id]);
-                    if (operation_list.has_workers() && worker >= 0 && worker < static_cast<int>(worker_ready_time.size()))
+                    if (worker >= 0 && worker < static_cast<int>(worker_ready_time.size()))
                     {
                         start_time = std::max(start_time, worker_ready_time[worker]);
                     }
                     const int completion_time = start_time + duration;
-                    const bool unused_machine = machine_assigned_ops[machine] == 0;
-                    choices.push_back({ op, machine, worker, completion_time, unused_machine });
-                    best_completion_time = std::min(best_completion_time, completion_time);
-                    has_unused_machine_choice = has_unused_machine_choice || unused_machine;
+                    const int worker_load =
+                        worker >= 0 && worker < static_cast<int>(worker_assigned_ops.size()) ? worker_assigned_ops[worker] : 0;
+                    const int resource_load = machine_assigned_ops[machine] + worker_load;
+                    const ConstructionChoice choice{
+                        op, machine, worker, start_time, completion_time, duration,
+                        resource_load, remaining_tail,
+                        score_choice(start_time, completion_time, duration, resource_load, remaining_tail)
+                    };
+                    if (!has_choice || is_better_choice(choice, selected_choice))
+                    {
+                        selected_choice = choice;
+                        has_choice = true;
+                    }
                     continue;
                 }
 
@@ -538,53 +583,38 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
                     {
                         duration = operation_list.duration(op, machine);
                     }
+                    if (duration <= 0)
+                    {
+                        continue;
+                    }
                     int start_time = std::max(machine_ready_time[machine], job_ready_time[job_id]);
-                    if (operation_list.has_workers() && worker >= 0 && worker < static_cast<int>(worker_ready_time.size()))
+                    if (worker >= 0 && worker < static_cast<int>(worker_ready_time.size()))
                     {
                         start_time = std::max(start_time, worker_ready_time[worker]);
                     }
                     const int completion_time = start_time + duration;
-                    const bool unused_machine = machine_assigned_ops[machine] == 0;
-                    choices.push_back({ op, machine, worker, completion_time, unused_machine });
-                    best_completion_time = std::min(best_completion_time, completion_time);
-                    has_unused_machine_choice = has_unused_machine_choice || unused_machine;
+                    const int worker_load =
+                        worker >= 0 && worker < static_cast<int>(worker_assigned_ops.size()) ? worker_assigned_ops[worker] : 0;
+                    const int resource_load = machine_assigned_ops[machine] + worker_load;
+                    const ConstructionChoice choice{
+                        op, machine, worker, start_time, completion_time, duration,
+                        resource_load, remaining_tail,
+                        score_choice(start_time, completion_time, duration, resource_load, remaining_tail)
+                    };
+                    if (!has_choice || is_better_choice(choice, selected_choice))
+                    {
+                        selected_choice = choice;
+                        has_choice = true;
+                    }
                 }
             }
         }
 
-        if (choices.empty())
+        if (!has_choice)
         {
             break;
         }
 
-        std::vector<ConstructionChoice> filtered_choices;
-        const int threshold = best_completion_time + std::max(1, best_completion_time / 5);
-        if (has_unused_machine_choice)
-        {
-            for (const auto& choice : choices)
-            {
-                if (choice.unused_machine && choice.completion_time <= threshold)
-                {
-                    filtered_choices.push_back(choice);
-                }
-            }
-        }
-        if (filtered_choices.empty())
-        {
-            for (const auto& choice : choices)
-            {
-                if (choice.completion_time <= threshold)
-                {
-                    filtered_choices.push_back(choice);
-                }
-            }
-        }
-        if (filtered_choices.empty())
-        {
-            filtered_choices = std::move(choices);
-        }
-
-        const auto selected_choice = filtered_choices[RAND_INT(static_cast<int>(filtered_choices.size()))];
         const int curr_op = selected_choice.operation;
         const int curr_machine = selected_choice.machine;
         const int curr_worker = selected_choice.worker;
@@ -596,6 +626,7 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
         if (curr_worker >= 0 && curr_worker < static_cast<int>(worker_ready_time.size()))
         {
             worker_ready_time[curr_worker] = selected_choice.completion_time;
+            worker_assigned_ops[curr_worker]++;
         }
         // �����ǰ�����ǻ����ϵĵ�һ��������������� first_machine_operation
         if (first_machine_operation[curr_machine] == -1)

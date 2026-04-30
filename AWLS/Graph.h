@@ -64,11 +64,11 @@ struct Graph
     [[nodiscard]] std::deque<int> topological_sort(bool reverse = false, bool include_worker = true) const;
 
     /**
-     * Generates a random initial solution graph from problem instance
-     * @param instance The scheduling problem instance
-     * @return Graph structure representing a feasible solution
+     * Generates a feasible initial solution graph from problem instance.
+     * The current implementation uses a deterministic worker-aware dispatching
+     * rule; the historical name is kept to avoid touching call sites.
      */
-    void random_init(const Instance& instance, const OperationList& operation_list);
+    void random_init(const Instance& instance, const OperationList& operation_list, int construction_variant = 0);
 
     void make_move(const NeighborhoodMove& move);
 

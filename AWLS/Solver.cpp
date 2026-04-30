@@ -7,39 +7,50 @@ namespace
 {
 int construction_sample_count(const Instance& instance)
 {
-    if (!instance.has_worker_flexibility)
-    {
-        return 1;
-    }
-    if (instance.job_num <= 2 && instance.machine_num <= 2)
-    {
-        return 4;
-    }
+    (void)instance;
+    // The search keeps one incumbent, selected from deterministic construction
+    // variants before tabu search starts.
+    return 1;
+}
 
-    int candidate_count = 0;
+int construction_variant_count(const Instance& instance)
+{
+    int candidate_edges = 0;
     for (const auto& job : instance.jobs)
     {
         for (const auto& operation : job)
         {
-            candidate_count += static_cast<int>(operation.size());
+            candidate_edges += static_cast<int>(operation.size());
         }
     }
-    const double relative_machine_flexibility = static_cast<double>(candidate_count) /
-        std::max(1, instance.op_num * instance.machine_num);
+    const double machine_flexibility = instance.op_num > 0 && instance.machine_num > 0
+        ? static_cast<double>(candidate_edges) / (instance.op_num * instance.machine_num)
+        : 0.0;
 
-    if (instance.machine_num < 50 && instance.worker_num < 50 && relative_machine_flexibility < 0.3)
+    // Dense, small Kacem-like cases are already well served by the earliest
+    // completion dispatch rule; extra construction variants led tabu search
+    // into worse basins in probes.
+    if (instance.op_num <= 80 && machine_flexibility >= 0.45)
     {
         return 1;
     }
-    if (instance.op_num <= 100)
+    return 6;
+}
+
+Schedule best_deterministic_initial_schedule(const Instance& instance,
+    const std::shared_ptr<OperationList>& operation_list)
+{
+    Schedule best_schedule(instance, operation_list, 0);
+    const int variant_count = construction_variant_count(instance);
+    for (int variant = 1; variant < variant_count; ++variant)
     {
-        return 8;
+        Schedule candidate(instance, operation_list, variant);
+        if (candidate.get_makespan() < best_schedule.get_makespan())
+        {
+            best_schedule = std::move(candidate);
+        }
     }
-    if (instance.op_num <= 300)
-    {
-        return 3;
-    }
-    return 2;
+    return best_schedule;
 }
 }
 
@@ -66,7 +77,7 @@ void Solver::initialize_population(const Instance& instance, std::shared_ptr<Ope
     population.reserve(population_size);
     for (int i = 0; i < population_size; ++i)
     {
-        population.emplace_back(instance, operation_list);
+        population.push_back(best_deterministic_initial_schedule(instance, operation_list));
     }
 }
 

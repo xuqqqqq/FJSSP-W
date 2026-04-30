@@ -1,0 +1,6 @@
+key,source,competition_instance,family,runs,ok_runs,best,average,lb,ub,best_minus_lb,best_minus_ub,status
+1_Brandimarte_12_workers,BrandimarteMk12,1_Brandimarte_12_workers,Brandimarte,3,3,514,523.667,146,471,368,43,OK
+2c_Hurink_rdata_38_workers,Hurinkrdata38,2c_Hurink_rdata_38_workers,Hurink_rdata,3,3,1808,1819.667,593,1471,1215,337,OK
+3_DPpaulli_15_workers,DPpaulli15,3_DPpaulli_15_workers,DPpaulli,3,3,2443,2472.333,1221,2071,1222,372,OK
+5_Kacem_4_workers,Kacem4,5_Kacem_4_workers,Kacem,3,3,12,12.333,10,11,2,1,OK
+6_Fattahi_20_workers,Fattahi20,6_Fattahi_20_workers,Fattahi,3,3,1257,1275,880,1147,377,110,OK

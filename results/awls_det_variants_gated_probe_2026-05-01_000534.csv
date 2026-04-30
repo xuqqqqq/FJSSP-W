@@ -1,0 +1,125 @@
+layer,source,competition_instance,family,seed,time_limit_sec,makespan,status,returncode,elapsed_sec,lb,ub,stdout_tail,stderr_tail
+layer1_competition30,BrandimarteMk12,1_Brandimarte_12_workers,Brandimarte,1009,10,527,OK,0,9.731,146,471,"=6	28 0 w=12	22 2 w=0	27 0 w=13	24 4 w=2	17 0 w=12	11 3 w=6	3 3 w=13	10 1 w=9	3 4 w=0	4 4 w=1	29 0 w=7	15 4 w=7	8 3 w=9	2 3 w=9	27 4 w=7	22 6 w=10	28 2 w=8	5 5 w=8	18 7 w=4	7 4 w=3	20 6 w=7	5 6 w=3	18 8 w=5	11 5 w=4	12 4 w=14	0 5 w=5	6 4 w=5	
+12	3 1 w=2	14 0 w=9	26 0 w=12	25 0 w=14	1 1 w=0	0 1 w=4	18 3 w=3	10 2 w=9	9 3 w=5	29 5 w=13	2 5 w=7	15 7 w=10	
+16	12 0 w=13	16 2 w=7	24 2 w=5	0 0 w=5	14 1 w=6	0 2 w=4	16 3 w=9	23 2 w=3	25 2 w=14	14 3 w=8	25 4 w=5	4 6 w=6	14 4 w=6	1 5 w=0	23 4 w=5	27 5 w=1	
+","Final solution: 527
+Schedule exported to ../../output.csv
+"
+layer1_competition30,BrandimarteMk12,1_Brandimarte_12_workers,Brandimarte,1013,10,514,OK,0,9.736,146,471,"3	28 0 w=12	24 4 w=14	17 0 w=12	11 3 w=6	3 3 w=13	10 1 w=9	3 4 w=1	4 4 w=1	29 0 w=7	15 4 w=7	28 2 w=8	8 3 w=9	2 3 w=13	27 4 w=9	22 6 w=10	12 4 w=8	5 5 w=8	18 7 w=4	7 4 w=3	20 6 w=7	5 6 w=7	18 8 w=5	11 5 w=4	0 5 w=5	6 4 w=5	
+12	3 1 w=2	14 0 w=9	25 0 w=14	1 1 w=0	18 3 w=3	0 1 w=5	10 2 w=9	9 3 w=2	25 5 w=3	29 5 w=13	2 5 w=7	15 7 w=10	
+18	12 0 w=13	16 2 w=12	24 2 w=5	0 0 w=5	14 1 w=6	19 2 w=12	0 2 w=3	6 1 w=2	16 3 w=14	23 2 w=3	25 2 w=14	25 3 w=5	23 4 w=1	25 4 w=5	4 6 w=6	14 4 w=6	1 5 w=2	27 5 w=1	
+","Final solution: 514
+Schedule exported to ../../output.csv
+"
+layer1_competition30,BrandimarteMk12,1_Brandimarte_12_workers,Brandimarte,1019,10,530,OK,0,9.728,146,471," 0 w=12	24 4 w=14	17 0 w=12	10 1 w=9	11 3 w=6	3 3 w=6	3 4 w=0	29 0 w=7	15 4 w=10	28 2 w=8	4 4 w=1	8 3 w=9	2 3 w=13	27 4 w=9	18 7 w=4	22 6 w=10	5 5 w=8	7 4 w=5	20 6 w=7	5 6 w=10	18 8 w=5	11 5 w=4	12 4 w=14	0 5 w=5	6 4 w=5	
+10	3 1 w=2	14 0 w=9	25 0 w=14	1 1 w=0	18 3 w=3	10 2 w=9	9 3 w=1	29 5 w=13	2 5 w=7	15 7 w=10	
+20	12 0 w=13	19 2 w=12	16 2 w=7	24 2 w=5	0 0 w=5	14 1 w=6	26 2 w=11	0 2 w=4	6 1 w=12	16 3 w=12	23 2 w=5	25 2 w=14	25 3 w=5	23 4 w=4	25 4 w=5	4 6 w=6	14 3 w=8	14 4 w=6	1 5 w=0	27 5 w=1	
+","Final solution: 530
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Hurinkrdata38,2c_Hurink_rdata_38_workers,Hurink_rdata,1009,10,1828,OK,0,9.745,593,1471,"w=9	25 3 w=4	11 0 w=12	16 3 w=2	20 4 w=7	9 5 w=11	21 3 w=8	13 4 w=14	27 2 w=8	12 3 w=8	8 3 w=6	8 5 w=1	6 3 w=14	12 5 w=5	19 6 w=7	6 4 w=0	5 8 w=0	21 8 w=7	8 6 w=3	26 5 w=0	29 5 w=4	14 8 w=7	14 9 w=12	3 8 w=7	16 6 w=8	0 6 w=0	22 7 w=3	28 9 w=6	26 7 w=11	
+27	1 0 w=10	12 0 w=0	28 1 w=2	20 1 w=5	2 3 w=7	25 4 w=7	29 1 w=12	29 2 w=5	29 3 w=6	26 2 w=13	17 6 w=1	20 5 w=3	19 4 w=9	5 6 w=7	7 6 w=1	18 4 w=6	0 4 w=10	21 5 w=8	14 2 w=13	19 8 w=2	24 5 w=9	14 7 w=1	11 9 w=6	17 8 w=9	1 5 w=14	0 7 w=10	0 8 w=9	
+","Final solution: 1828
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Hurinkrdata38,2c_Hurink_rdata_38_workers,Hurink_rdata,1013,10,1808,OK,0,9.734,593,1471,"w=6	8 1 w=9	25 3 w=4	11 0 w=12	16 3 w=2	9 5 w=11	21 3 w=8	13 4 w=12	27 2 w=8	12 3 w=8	8 3 w=6	8 5 w=10	6 3 w=14	18 5 w=5	12 5 w=5	6 4 w=0	5 8 w=0	21 8 w=7	8 6 w=3	26 5 w=0	29 5 w=4	14 8 w=7	3 8 w=7	16 6 w=8	0 6 w=0	1 6 w=14	22 7 w=3	26 7 w=11	28 9 w=6	
+27	1 0 w=10	12 0 w=0	28 1 w=2	20 1 w=5	2 3 w=7	25 4 w=7	29 1 w=12	29 2 w=5	29 3 w=6	26 2 w=13	20 5 w=3	17 6 w=12	19 4 w=9	5 6 w=7	7 6 w=9	18 4 w=6	0 4 w=10	24 5 w=9	21 5 w=8	14 2 w=13	19 8 w=2	14 7 w=1	11 9 w=6	17 8 w=9	1 5 w=14	0 7 w=10	0 8 w=9	
+","Final solution: 1808
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Hurinkrdata38,2c_Hurink_rdata_38_workers,Hurink_rdata,1019,10,1823,OK,0,9.742,593,1471,"9 9 w=6	
+30	2 0 w=11	25 0 w=6	8 1 w=9	25 3 w=4	11 0 w=12	16 3 w=2	20 4 w=7	9 5 w=11	13 4 w=8	27 2 w=8	12 3 w=8	8 3 w=6	8 5 w=12	6 3 w=14	12 5 w=5	19 6 w=7	6 4 w=0	21 8 w=7	8 6 w=3	26 5 w=0	29 5 w=4	14 8 w=7	14 9 w=12	3 8 w=7	16 6 w=8	0 6 w=0	1 6 w=14	22 7 w=3	26 7 w=11	28 9 w=6	
+24	1 0 w=10	12 0 w=0	28 1 w=2	20 1 w=5	2 3 w=7	25 4 w=7	29 1 w=12	29 2 w=5	29 3 w=6	26 2 w=13	17 6 w=12	5 6 w=7	7 6 w=9	18 4 w=6	0 4 w=10	24 5 w=9	21 5 w=8	14 2 w=13	19 8 w=2	14 7 w=1	17 8 w=5	1 5 w=14	0 7 w=10	0 8 w=9	
+","Final solution: 1823
+Schedule exported to ../../output.csv
+"
+layer1_competition30,DPpaulli15,3_DPpaulli_15_workers,DPpaulli,1009,10,2513,OK,0,9.747,1221,2071,"	8 13 w=0	8 14 w=0	6 9 w=9	5 7 w=1	2 17 w=13	10 8 w=4	3 10 w=8	11 11 w=13	13 12 w=4	17 12 w=6	11 16 w=12	6 14 w=1	0 9 w=1	13 14 w=1	9 17 w=12	9 18 w=0	12 14 w=4	
+36	3 0 w=9	2 1 w=3	3 1 w=13	8 3 w=5	4 2 w=5	1 3 w=7	15 2 w=11	14 7 w=3	14 8 w=8	1 8 w=12	10 5 w=12	2 11 w=3	16 8 w=13	16 9 w=8	15 8 w=0	18 7 w=3	14 11 w=7	11 10 w=4	6 4 w=7	17 7 w=1	5 6 w=6	17 10 w=3	17 11 w=6	9 13 w=13	10 11 w=10	10 12 w=3	1 14 w=10	1 15 w=2	1 16 w=9	17 13 w=13	6 13 w=7	18 18 w=2	1 19 w=2	2 22 w=7	19 15 w=1	17 15 w=5	
+","Final solution: 2513
+Schedule exported to ../../output.csv
+"
+layer1_competition30,DPpaulli15,3_DPpaulli_15_workers,DPpaulli,1013,10,2461,OK,0,9.750,1221,2071,"=0	8 14 w=0	6 9 w=9	5 7 w=1	2 17 w=13	10 8 w=4	3 10 w=8	11 11 w=13	13 12 w=4	17 12 w=6	11 16 w=9	6 14 w=1	0 9 w=1	13 14 w=1	9 17 w=12	9 18 w=0	12 14 w=4	
+37	3 0 w=9	2 1 w=3	3 1 w=13	8 3 w=13	4 2 w=5	1 3 w=7	15 2 w=11	12 3 w=14	14 7 w=3	14 8 w=8	1 8 w=12	10 5 w=12	2 11 w=3	16 8 w=1	16 9 w=8	15 8 w=0	18 7 w=3	14 11 w=7	11 10 w=4	6 4 w=7	17 7 w=1	7 18 w=6	5 6 w=6	17 10 w=3	17 11 w=6	9 13 w=13	10 11 w=10	10 12 w=3	1 14 w=10	1 15 w=2	1 16 w=9	6 13 w=7	18 18 w=2	1 19 w=2	2 22 w=7	19 15 w=1	17 15 w=5	
+","Final solution: 2461
+Schedule exported to ../../output.csv
+"
+layer1_competition30,DPpaulli15,3_DPpaulli_15_workers,DPpaulli,1019,10,2443,OK,0,9.757,1221,2071,"3	8 13 w=0	8 14 w=0	6 9 w=9	5 7 w=1	2 17 w=13	10 8 w=4	3 10 w=8	11 11 w=13	13 12 w=4	17 12 w=6	11 16 w=9	6 14 w=1	0 9 w=1	11 20 w=14	13 14 w=1	9 17 w=12	9 18 w=0	12 14 w=4	
+35	14 1 w=8	2 1 w=3	3 1 w=13	8 3 w=5	4 2 w=5	1 3 w=7	15 2 w=11	14 7 w=3	14 8 w=8	1 7 w=12	1 8 w=12	10 5 w=12	2 11 w=3	16 8 w=1	16 9 w=8	18 7 w=3	14 11 w=6	11 10 w=4	6 4 w=7	17 7 w=1	7 18 w=6	5 6 w=6	17 10 w=3	17 11 w=6	9 13 w=13	10 11 w=10	10 12 w=3	1 14 w=10	1 15 w=2	6 13 w=7	18 18 w=2	1 19 w=2	2 22 w=7	19 15 w=1	17 15 w=5	
+","Final solution: 2443
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Kacem4,5_Kacem_4_workers,Kacem,1009,10,13,OK,0,9.733,10,11,"9	5 1 w=12	13 0 w=4	6 1 w=5	7 3 w=0	
+5	5 0 w=10	2 2 w=14	9 3 w=0	10 3 w=0	12 3 w=3	
+5	6 0 w=13	0 2 w=0	8 1 w=12	14 1 w=3	1 1 w=12	
+4	1 0 w=12	7 2 w=8	14 2 w=3	2 3 w=14	
+5	3 0 w=6	3 1 w=7	11 1 w=10	13 3 w=13	1 3 w=2	
+6	10 1 w=2	3 2 w=11	4 1 w=1	11 2 w=10	4 3 w=5	14 3 w=7	
+7	10 0 w=3	2 0 w=11	7 0 w=4	2 1 w=14	4 2 w=12	8 2 w=8	11 3 w=4	
+5	11 0 w=5	14 0 w=2	7 1 w=2	9 1 w=0	13 2 w=13	
+4	4 0 w=6	10 2 w=9	13 1 w=2	0 3 w=9	
+9	8 0 w=1	9 0 w=8	12 0 w=6	3 3 w=13	12 1 w=9	9 2 w=5	12 2 w=1	1 2 w=2	8 3 w=10	
+","Final solution: 13
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Kacem4,5_Kacem_4_workers,Kacem,1013,10,12,OK,0,9.726,10,11,"0 w=1	5 1 w=10	12 1 w=7	9 3 w=8	
+7	2 0 w=7	5 0 w=0	2 2 w=14	0 1 w=2	4 2 w=1	7 3 w=4	12 3 w=1	
+5	6 0 w=13	8 1 w=12	14 1 w=3	0 2 w=14	1 1 w=12	
+5	7 1 w=11	1 0 w=12	7 2 w=8	2 3 w=14	4 3 w=0	
+6	3 0 w=8	3 1 w=3	6 1 w=0	11 1 w=10	14 3 w=3	13 3 w=13	
+5	10 1 w=2	3 2 w=5	4 1 w=1	14 2 w=4	11 2 w=10	
+5	7 0 w=0	9 0 w=8	10 3 w=6	8 2 w=6	11 3 w=4	
+5	11 0 w=5	14 0 w=7	9 1 w=0	13 2 w=7	1 3 w=6	
+5	4 0 w=3	2 1 w=9	10 2 w=13	13 1 w=12	0 3 w=9	
+8	8 0 w=2	10 0 w=2	12 0 w=6	3 3 w=13	9 2 w=5	12 2 w=2	1 2 w=2	8 3 w=3	
+","Final solution: 12
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Kacem4,5_Kacem_4_workers,Kacem,1019,10,12,OK,0,9.739,10,11,"0	13 0 w=9	9 1 w=4	0 2 w=2	7 3 w=0	6 1 w=1	
+8	5 0 w=11	2 0 w=4	0 1 w=0	2 2 w=7	13 1 w=13	10 3 w=1	12 3 w=3	9 3 w=0	
+4	8 1 w=12	6 0 w=13	10 2 w=8	1 1 w=7	
+6	7 0 w=7	7 1 w=11	2 3 w=14	7 2 w=10	4 3 w=12	1 3 w=4	
+5	3 0 w=14	3 1 w=3	11 1 w=14	11 2 w=12	13 3 w=13	
+6	10 0 w=1	4 1 w=4	10 1 w=2	3 2 w=3	14 2 w=4	14 3 w=7	
+4	9 0 w=5	4 2 w=12	8 2 w=6	11 3 w=5	
+4	11 0 w=8	14 0 w=2	14 1 w=0	13 2 w=13	
+5	4 0 w=9	2 1 w=5	12 1 w=10	3 3 w=3	0 3 w=9	
+7	8 0 w=13	12 0 w=6	1 0 w=3	12 2 w=5	9 2 w=11	1 2 w=8	8 3 w=10	
+","Final solution: 12
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Fattahi20,6_Fattahi_20_workers,Fattahi,1009,10,1257,OK,0,9.721,880,1147,"makespan=1257
+3	4 0 w=9	2 0 w=6	1 0 w=11	
+6	3 0 w=3	10 0 w=4	6 0 w=1	5 0 w=10	1 1 w=0	8 0 w=7	
+5	0 0 w=5	11 0 w=5	6 1 w=9	11 1 w=9	8 1 w=11	
+7	7 0 w=11	4 1 w=8	9 0 w=7	5 1 w=4	3 2 w=0	10 1 w=6	5 3 w=8	
+9	3 1 w=10	0 2 w=2	2 2 w=6	6 2 w=10	1 3 w=2	11 2 w=5	8 2 w=5	5 2 w=11	6 3 w=4	
+6	4 2 w=3	7 1 w=8	9 1 w=1	3 3 w=9	8 3 w=8	10 3 w=7	
+7	0 1 w=9	2 1 w=0	1 2 w=11	7 2 w=8	9 2 w=2	10 2 w=4	9 3 w=1	
+5	4 3 w=4	0 3 w=5	2 3 w=6	7 3 w=0	11 3 w=6	
+","Final solution: 1257
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Fattahi20,6_Fattahi_20_workers,Fattahi,1013,10,1260,OK,0,9.729,880,1147,"makespan=1260
+3	2 0 w=11	4 0 w=1	1 0 w=4	
+6	3 0 w=3	6 0 w=6	8 0 w=7	1 1 w=0	5 0 w=10	10 0 w=7	
+5	0 0 w=5	2 1 w=5	11 0 w=5	11 1 w=9	6 1 w=0	
+6	9 0 w=7	7 0 w=11	8 1 w=1	5 1 w=4	10 1 w=2	5 3 w=9	
+9	3 1 w=10	4 1 w=6	9 1 w=6	2 2 w=2	1 3 w=6	7 2 w=3	11 2 w=5	5 2 w=11	6 3 w=4	
+6	4 2 w=3	3 2 w=10	7 1 w=8	3 3 w=5	6 2 w=1	10 3 w=7	
+8	0 1 w=9	0 2 w=1	1 2 w=4	8 2 w=3	9 2 w=11	7 3 w=7	10 2 w=4	9 3 w=1	
+5	4 3 w=2	0 3 w=3	8 3 w=8	2 3 w=4	11 3 w=3	
+","Final solution: 1260
+Schedule exported to ../../output.csv
+"
+layer1_competition30,Fattahi20,6_Fattahi_20_workers,Fattahi,1019,10,1308,OK,0,9.725,880,1147,"makespan=1308
+3	3 0 w=7	2 0 w=6	1 0 w=7	
+5	4 0 w=1	6 0 w=1	5 0 w=1	8 0 w=7	10 0 w=9	
+5	0 0 w=5	11 0 w=5	1 1 w=6	8 1 w=5	11 1 w=0	
+6	7 0 w=11	9 0 w=4	2 2 w=4	5 1 w=4	10 1 w=4	5 3 w=7	
+10	3 1 w=10	4 2 w=3	6 1 w=2	6 2 w=6	7 2 w=3	8 2 w=8	5 2 w=11	11 2 w=5	10 2 w=6	6 3 w=4	
+6	3 2 w=10	7 1 w=8	9 1 w=1	3 3 w=9	8 3 w=8	10 3 w=7	
+8	4 1 w=3	2 1 w=9	0 1 w=9	1 2 w=11	0 2 w=10	9 2 w=7	7 3 w=4	9 3 w=1	
+5	4 3 w=10	2 3 w=6	1 3 w=5	0 3 w=0	11 3 w=3	
+","Final solution: 1308
+Schedule exported to ../../output.csv
+"
