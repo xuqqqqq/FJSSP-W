@@ -81,6 +81,51 @@ std::vector<int> collect_worker_shortlist(const Schedule& schedule,
     return shortlist;
 }
 
+std::vector<int> collect_machine_shortlist(const Schedule& schedule,
+    const int op,
+    const int exclude_machine,
+    const size_t max_candidates)
+{
+    const auto& operation_list = *schedule.get_operation_list_ptr();
+    std::vector<std::pair<int, int>> ranked_machines;
+    ranked_machines.reserve(operation_list[op].candidates.size());
+
+    for (const int machine : operation_list[op].candidates)
+    {
+        if (machine == exclude_machine)
+        {
+            continue;
+        }
+
+        const int duration = operation_list.duration(op, machine);
+        if (duration <= 0)
+        {
+            continue;
+        }
+
+        ranked_machines.emplace_back(duration, machine);
+    }
+
+    std::sort(ranked_machines.begin(), ranked_machines.end(),
+        [](const std::pair<int, int>& lhs, const std::pair<int, int>& rhs) {
+            if (lhs.first != rhs.first)
+            {
+                return lhs.first < rhs.first;
+            }
+            return lhs.second < rhs.second;
+        });
+
+    std::vector<int> shortlist;
+    const size_t limit = max_candidates == 0 ? ranked_machines.size() : std::min(max_candidates, ranked_machines.size());
+    shortlist.reserve(limit);
+    for (size_t i = 0; i < limit; ++i)
+    {
+        shortlist.push_back(ranked_machines[i].second);
+    }
+
+    return shortlist;
+}
+
 bool has_strong_worker_alternative(const Schedule& schedule,
     const int op,
     const int machine,
@@ -878,15 +923,13 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
                 }
 
                 const int old_machine = current_schedule.graph.on_machine[op];
-                for (const int candidate_machine : (*current_schedule.operation_list)[op].candidates)
+                const auto candidate_machines = collect_machine_shortlist(
+                    current_schedule, op, old_machine, machine_change_shortlist_size);
+                for (const int candidate_machine : candidate_machines)
                 {
                     if (should_stop_search(stop_flag))
                     {
                         return {};
-                    }
-                    if (candidate_machine == old_machine)
-                    {
-                        continue;
                     }
 
                     const int first_target_op = current_schedule.graph.first_machine_operation[candidate_machine];

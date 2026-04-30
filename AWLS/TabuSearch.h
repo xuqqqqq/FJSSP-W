@@ -47,8 +47,11 @@ public:
             std::max(1, instance.op_num * instance.machine_num);
         const bool tighten_worker_probe_shortlists =
             instance.has_worker_flexibility && instance.op_num >= 250 && relative_machine_flexibility >= 0.45;
+        const bool tighten_machine_change_shortlists =
+            instance.has_worker_flexibility && instance.op_num >= 250 && relative_machine_flexibility >= 0.2;
         worker_change_shortlist_size = tighten_worker_probe_shortlists ? 1u : 2u;
         worker_change_strong_shortlist_size = tighten_worker_probe_shortlists ? 2u : 3u;
+        machine_change_shortlist_size = tighten_machine_change_shortlists ? 2u : 0u;
     }
 
     void search(const Schedule& schedule, const std::atomic<bool>& stop_flag);
@@ -67,6 +70,7 @@ private:
     int L_max;
     size_t worker_change_shortlist_size{2};
     size_t worker_change_strong_shortlist_size{3};
+    size_t machine_change_shortlist_size{0};
 
     void change_machine_evaluate_and_push(const Schedule& schedule, const NeighborhoodMove& move,
         const std::vector<int>& intersection,
@@ -85,4 +89,3 @@ private:
 };
 
 #endif // FJSP_TABUSEARCH_H
-
