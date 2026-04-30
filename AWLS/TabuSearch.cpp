@@ -126,6 +126,160 @@ std::vector<int> collect_machine_shortlist(const Schedule& schedule,
     return shortlist;
 }
 
+std::vector<NeighborhoodMove> collect_machine_insertion_shortlist(const Schedule& schedule,
+    const int op,
+    const int candidate_machine,
+    const size_t max_candidates)
+{
+    const auto& graph = schedule.get_graph();
+    const auto& time_info = schedule.get_time_info();
+    const auto& operation_list = *schedule.get_operation_list_ptr();
+    const int first_target_op = graph.first_machine_operation[candidate_machine];
+    if (first_target_op == -1)
+    {
+        return {};
+    }
+
+    const int duration = operation_list.duration(op, candidate_machine);
+    if (duration <= 0)
+    {
+        return {};
+    }
+
+    const int job_pred = graph.job_predecessor[op];
+    const int job_ready_time = job_pred != -1 ? time_info[job_pred].end_time : 0;
+
+    struct RankedInsertion
+    {
+        NeighborhoodMove move;
+        int score;
+        int overrun;
+        int position;
+    };
+
+    std::vector<RankedInsertion> ranked_insertions;
+    ranked_insertions.reserve(static_cast<size_t>(graph.machine_operation_count[candidate_machine]) + 1);
+
+    auto push_candidate = [&](const Method method,
+        const int where,
+        const int predecessor_op,
+        const int successor_op,
+        const int position) {
+            int start_time = job_ready_time;
+            if (predecessor_op != -1)
+            {
+                start_time = std::max(start_time, time_info[predecessor_op].end_time);
+            }
+
+            const int completion_time = start_time + duration;
+            int overrun = 0;
+            if (successor_op != -1)
+            {
+                overrun = std::max(0, completion_time - time_info[successor_op].forward_path_length);
+            }
+
+            ranked_insertions.push_back({
+                NeighborhoodMove{ method, op, where },
+                completion_time + overrun,
+                overrun,
+                position
+                });
+        };
+
+    push_candidate(Method::CHANGE_MACHINE_FRONT, first_target_op, -1, first_target_op, 0);
+
+    int position = 1;
+    for (int target_op = first_target_op; target_op != -1; target_op = graph.machine_successor[target_op], ++position)
+    {
+        push_candidate(Method::CHANGE_MACHINE_BACK,
+            target_op,
+            target_op,
+            graph.machine_successor[target_op],
+            position);
+    }
+
+    if (max_candidates == 0 || ranked_insertions.size() <= max_candidates)
+    {
+        std::vector<NeighborhoodMove> moves;
+        moves.reserve(ranked_insertions.size());
+        for (const auto& candidate : ranked_insertions)
+        {
+            moves.push_back(candidate.move);
+        }
+        return moves;
+    }
+
+    std::vector<size_t> selected_indices;
+    selected_indices.reserve(max_candidates);
+    selected_indices.push_back(0);
+    if (selected_indices.size() < max_candidates)
+    {
+        const size_t last_index = ranked_insertions.size() - 1;
+        if (last_index != 0)
+        {
+            selected_indices.push_back(last_index);
+        }
+    }
+
+    std::vector<size_t> ranked_indices;
+    ranked_indices.reserve(ranked_insertions.size());
+    for (size_t i = 0; i < ranked_insertions.size(); ++i)
+    {
+        if (std::find(selected_indices.begin(), selected_indices.end(), i) == selected_indices.end())
+        {
+            ranked_indices.push_back(i);
+        }
+    }
+
+    std::sort(ranked_indices.begin(), ranked_indices.end(),
+        [&](const size_t lhs, const size_t rhs) {
+            const auto& left = ranked_insertions[lhs];
+            const auto& right = ranked_insertions[rhs];
+            if (left.score != right.score)
+            {
+                return left.score < right.score;
+            }
+            if (left.overrun != right.overrun)
+            {
+                return left.overrun < right.overrun;
+            }
+            return left.position < right.position;
+        });
+
+    for (const size_t index : ranked_indices)
+    {
+        if (selected_indices.size() >= max_candidates)
+        {
+            break;
+        }
+        selected_indices.push_back(index);
+    }
+
+    std::stable_sort(selected_indices.begin(), selected_indices.end(),
+        [&](const size_t lhs, const size_t rhs) {
+            const auto& left = ranked_insertions[lhs];
+            const auto& right = ranked_insertions[rhs];
+            if (left.score != right.score)
+            {
+                return left.score < right.score;
+            }
+            if (left.overrun != right.overrun)
+            {
+                return left.overrun < right.overrun;
+            }
+            return left.position < right.position;
+        });
+
+    std::vector<NeighborhoodMove> shortlist;
+    shortlist.reserve(selected_indices.size());
+    for (const size_t index : selected_indices)
+    {
+        shortlist.push_back(ranked_insertions[index].move);
+    }
+
+    return shortlist;
+}
+
 bool has_strong_worker_alternative(const Schedule& schedule,
     const int op,
     const int machine,
@@ -932,21 +1086,15 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
                         return {};
                     }
 
-                    const int first_target_op = current_schedule.graph.first_machine_operation[candidate_machine];
-                    if (first_target_op == -1)
+                    const auto insertion_moves = collect_machine_insertion_shortlist(
+                        current_schedule, op, candidate_machine, machine_change_position_shortlist_size);
+                    for (const auto& move : insertion_moves)
                     {
-                        continue;
-                    }
-
-                    NeighborhoodMove front_move{ Method::CHANGE_MACHINE_FRONT, op, first_target_op };
-                    same_machine_evaluate_and_push(current_schedule, front_move, all_moves, best_moves, min_makespan);
-
-                    for (int target_op = first_target_op;
-                        target_op != -1 && !should_stop_search(stop_flag);
-                        target_op = current_schedule.graph.machine_successor[target_op])
-                    {
-                        NeighborhoodMove back_move{ Method::CHANGE_MACHINE_BACK, op, target_op };
-                        same_machine_evaluate_and_push(current_schedule, back_move, all_moves, best_moves, min_makespan);
+                        if (should_stop_search(stop_flag))
+                        {
+                            return {};
+                        }
+                        same_machine_evaluate_and_push(current_schedule, move, all_moves, best_moves, min_makespan);
                     }
                 }
             }

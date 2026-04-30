@@ -52,6 +52,7 @@ public:
         worker_change_shortlist_size = tighten_worker_probe_shortlists ? 1u : 2u;
         worker_change_strong_shortlist_size = tighten_worker_probe_shortlists ? 2u : 3u;
         machine_change_shortlist_size = tighten_machine_change_shortlists ? 2u : 0u;
+        machine_change_position_shortlist_size = tighten_machine_change_shortlists ? 4u : 0u;
     }
 
     void search(const Schedule& schedule, const std::atomic<bool>& stop_flag);
@@ -71,6 +72,7 @@ private:
     size_t worker_change_shortlist_size{2};
     size_t worker_change_strong_shortlist_size{3};
     size_t machine_change_shortlist_size{0};
+    size_t machine_change_position_shortlist_size{0};
 
     void change_machine_evaluate_and_push(const Schedule& schedule, const NeighborhoodMove& move,
         const std::vector<int>& intersection,

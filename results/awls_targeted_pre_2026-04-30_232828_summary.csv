@@ -1,0 +1,4 @@
+key,source,competition_instance,family,runs,ok_runs,best,average,lb,ub,best_minus_lb,best_minus_ub,status
+2c_Hurink_rdata_38_workers,Hurinkrdata38,2c_Hurink_rdata_38_workers,Hurink_rdata,3,3,1967,2293,593,1471,1374,496,OK
+3_DPpaulli_15_workers,DPpaulli15,3_DPpaulli_15_workers,DPpaulli,3,3,3085,3129.333,1221,2071,1864,1014,OK
+5_Kacem_4_workers,Kacem4,5_Kacem_4_workers,Kacem,3,3,12,12,10,11,2,1,OK
