@@ -34,17 +34,24 @@ int construction_variant_count(const Instance& instance)
     {
         return 1;
     }
-    return 6;
+    if (instance.op_num < 120)
+    {
+        return 6;
+    }
+    return 12;
 }
 
 Schedule best_deterministic_initial_schedule(const Instance& instance,
     const std::shared_ptr<OperationList>& operation_list)
 {
     Schedule best_schedule(instance, operation_list, 0);
+    awls_trace::log("construction_variant variant=0 makespan=", best_schedule.get_makespan());
     const int variant_count = construction_variant_count(instance);
     for (int variant = 1; variant < variant_count; ++variant)
     {
         Schedule candidate(instance, operation_list, variant);
+        awls_trace::log("construction_variant variant=", variant,
+            " makespan=", candidate.get_makespan());
         if (candidate.get_makespan() < best_schedule.get_makespan())
         {
             best_schedule = std::move(candidate);

@@ -472,7 +472,7 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
 
     auto score_choice = [construction_variant](const int start_time, const int completion_time, const int duration,
         const int resource_load, const int remaining_tail) -> long long {
-        switch (construction_variant % 6)
+        switch (construction_variant)
         {
         case 1:
             return 8LL * completion_time - remaining_tail;
@@ -484,6 +484,18 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
             return 4LL * duration + completion_time + resource_load;
         case 5:
             return 4LL * completion_time + 2LL * resource_load - 2LL * remaining_tail;
+        case 6:
+            return completion_time;
+        case 7:
+            return 8LL * completion_time - remaining_tail;
+        case 8:
+            return 2LL * completion_time + resource_load - 3LL * remaining_tail;
+        case 9:
+            return completion_time + duration + 2LL * resource_load - 2LL * remaining_tail;
+        case 10:
+            return 6LL * completion_time + 4LL * duration + resource_load - 3LL * remaining_tail;
+        case 11:
+            return 4LL * start_time + completion_time - 2LL * remaining_tail + resource_load;
         default:
             return completion_time;
         }
@@ -524,6 +536,228 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
         }
         return lhs.worker < rhs.worker;
     };
+
+    auto append_assignment_to_graph = [&](const int curr_op, const int curr_machine, const int curr_worker) {
+        on_machine[curr_op] = curr_machine;
+        on_worker[curr_op] = curr_worker;
+        machine_operation_count[curr_machine]++;
+        if (first_machine_operation[curr_machine] == -1)
+        {
+            first_machine_operation[curr_machine] = curr_op;
+            last_machine_operation[curr_machine] = curr_op;
+            on_machine_pos_vec[curr_op] = 0;
+        }
+        else
+        {
+            int pre_machine_op = last_machine_operation[curr_machine];
+            last_machine_operation[curr_machine] = curr_op;
+            machine_successor[pre_machine_op] = curr_op;
+            machine_predecessor[curr_op] = pre_machine_op;
+            on_machine_pos_vec[curr_op] = machine_operation_count[curr_machine] - 1;
+        }
+    };
+
+    if ((construction_variant == 6 || construction_variant == 7) && this->node_num <= 260)
+    {
+        struct BeamAssignment
+        {
+            int operation;
+            int machine;
+            int worker;
+        };
+
+        struct BeamState
+        {
+            std::vector<int> candidates;
+            std::vector<int> machine_ready_time;
+            std::vector<int> worker_ready_time;
+            std::vector<int> job_ready_time;
+            std::vector<int> machine_assigned_ops;
+            std::vector<int> worker_assigned_ops;
+            std::vector<BeamAssignment> sequence;
+            int max_completion_time;
+            long long lower_bound_score;
+        };
+
+        auto estimate_lower_bound = [&](const BeamState& state) {
+            int lower_bound = state.max_completion_time;
+            for (const int op : state.candidates)
+            {
+                if (op <= 0 || op >= this->node_num - 1)
+                {
+                    continue;
+                }
+                const int job_id = operation_list[op].job_id;
+                lower_bound = std::max(lower_bound,
+                    state.job_ready_time[job_id] + min_duration_for_operation(op) + remaining_min_work_after(op));
+            }
+            long long ready_sum = 0;
+            for (const int ready_time : state.machine_ready_time)
+            {
+                ready_sum += ready_time;
+            }
+            for (const int ready_time : state.worker_ready_time)
+            {
+                ready_sum += ready_time;
+            }
+            return 1024LL * lower_bound + ready_sum;
+        };
+
+        auto collect_beam_choices = [&](const BeamState& state) {
+            std::vector<ConstructionChoice> choices;
+            for (const int op : state.candidates)
+            {
+                if (op <= 0 || op >= this->node_num - 1)
+                {
+                    continue;
+                }
+
+                const int job_id = operation_list[op].job_id;
+                const int remaining_tail = remaining_min_work_after(op);
+                for (const int machine : operation_list[op].candidates)
+                {
+                    const auto& worker_candidates = operation_list.workers_for_machine(op, machine);
+                    auto consider_worker = [&](const int worker) {
+                        int duration = operation_list.worker_duration(op, machine, worker);
+                        if (duration <= 0)
+                        {
+                            duration = operation_list.duration(op, machine);
+                        }
+                        if (duration <= 0)
+                        {
+                            return;
+                        }
+
+                        int start_time = std::max(state.machine_ready_time[machine], state.job_ready_time[job_id]);
+                        if (worker >= 0 && worker < static_cast<int>(state.worker_ready_time.size()))
+                        {
+                            start_time = std::max(start_time, state.worker_ready_time[worker]);
+                        }
+                        const int completion_time = start_time + duration;
+                        const int worker_load =
+                            worker >= 0 && worker < static_cast<int>(state.worker_assigned_ops.size())
+                            ? state.worker_assigned_ops[worker]
+                            : 0;
+                        const int resource_load = state.machine_assigned_ops[machine] + worker_load;
+                        choices.push_back({
+                            op, machine, worker, start_time, completion_time, duration,
+                            resource_load, remaining_tail,
+                            score_choice(start_time, completion_time, duration, resource_load, remaining_tail)
+                            });
+                    };
+
+                    if (worker_candidates.empty())
+                    {
+                        consider_worker(std::max(0, operation_list.best_worker_for_machine(op, machine)));
+                    }
+                    else
+                    {
+                        for (const int worker : worker_candidates)
+                        {
+                            consider_worker(worker);
+                        }
+                    }
+                }
+            }
+
+            std::sort(choices.begin(), choices.end(), is_better_choice);
+            return choices;
+        };
+
+        BeamState initial_state{
+            candidates,
+            machine_ready_time,
+            worker_ready_time,
+            job_ready_time,
+            machine_assigned_ops,
+            worker_assigned_ops,
+            {},
+            0,
+            0
+        };
+        initial_state.sequence.reserve(this->node_num - 2);
+        initial_state.lower_bound_score = estimate_lower_bound(initial_state);
+
+        const size_t beam_width = construction_variant == 6 ? 4u : 6u;
+        const size_t expansion_limit = construction_variant == 6 ? 6u : 10u;
+        std::vector<BeamState> beam{ std::move(initial_state) };
+
+        for (int scheduled_count = 0; scheduled_count < this->node_num - 2 && !beam.empty(); ++scheduled_count)
+        {
+            std::vector<BeamState> next_beam;
+            for (const auto& state : beam)
+            {
+                auto choices = collect_beam_choices(state);
+                if (choices.empty())
+                {
+                    continue;
+                }
+                const size_t limit = std::min(expansion_limit, choices.size());
+                next_beam.reserve(next_beam.size() + limit);
+                for (size_t i = 0; i < limit; ++i)
+                {
+                    const auto& choice = choices[i];
+                    BeamState next_state = state;
+                    const auto index_it = std::find(next_state.candidates.begin(), next_state.candidates.end(), choice.operation);
+                    if (index_it == next_state.candidates.end())
+                    {
+                        continue;
+                    }
+                    const int index = static_cast<int>(index_it - next_state.candidates.begin());
+                    if (job_successor[choice.operation] == this->node_num - 1)
+                    {
+                        next_state.candidates[index] = next_state.candidates.back();
+                        next_state.candidates.pop_back();
+                    }
+                    else
+                    {
+                        next_state.candidates[index] = job_successor[choice.operation];
+                    }
+
+                    next_state.machine_ready_time[choice.machine] = choice.completion_time;
+                    next_state.job_ready_time[operation_list[choice.operation].job_id] = choice.completion_time;
+                    next_state.machine_assigned_ops[choice.machine]++;
+                    if (choice.worker >= 0 && choice.worker < static_cast<int>(next_state.worker_ready_time.size()))
+                    {
+                        next_state.worker_ready_time[choice.worker] = choice.completion_time;
+                        next_state.worker_assigned_ops[choice.worker]++;
+                    }
+                    next_state.max_completion_time = std::max(next_state.max_completion_time, choice.completion_time);
+                    next_state.sequence.push_back({ choice.operation, choice.machine, choice.worker });
+                    next_state.lower_bound_score = estimate_lower_bound(next_state);
+                    next_beam.push_back(std::move(next_state));
+                }
+            }
+
+            std::sort(next_beam.begin(), next_beam.end(),
+                [](const BeamState& lhs, const BeamState& rhs) {
+                    if (lhs.lower_bound_score != rhs.lower_bound_score)
+                    {
+                        return lhs.lower_bound_score < rhs.lower_bound_score;
+                    }
+                    if (lhs.max_completion_time != rhs.max_completion_time)
+                    {
+                        return lhs.max_completion_time < rhs.max_completion_time;
+                    }
+                    return lhs.sequence.size() > rhs.sequence.size();
+                });
+
+            if (next_beam.size() > beam_width)
+            {
+                next_beam.resize(beam_width);
+            }
+            beam = std::move(next_beam);
+        }
+
+        if (!beam.empty() && beam.front().sequence.size() == static_cast<size_t>(this->node_num - 2))
+        {
+            for (const auto& assignment : beam.front().sequence)
+            {
+                append_assignment_to_graph(assignment.operation, assignment.machine, assignment.worker);
+            }
+            return;
+        }
+    }
 
     while (!candidates.empty())
     {
@@ -618,9 +852,6 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
         const int curr_op = selected_choice.operation;
         const int curr_machine = selected_choice.machine;
         const int curr_worker = selected_choice.worker;
-        on_machine[curr_op] = curr_machine;
-        on_worker[curr_op] = curr_worker;
-        machine_operation_count[curr_machine]++;
         machine_ready_time[curr_machine] = selected_choice.completion_time;
         job_ready_time[operation_list[curr_op].job_id] = selected_choice.completion_time;
         if (curr_worker >= 0 && curr_worker < static_cast<int>(worker_ready_time.size()))
@@ -628,24 +859,8 @@ void Graph::random_init(const Instance& instance, const OperationList& operation
             worker_ready_time[curr_worker] = selected_choice.completion_time;
             worker_assigned_ops[curr_worker]++;
         }
-        // �����ǰ�����ǻ����ϵĵ�һ��������������� first_machine_operation
-        if (first_machine_operation[curr_machine] == -1)
-        {
-            first_machine_operation[curr_machine] = curr_op;
-            last_machine_operation[curr_machine] = curr_op;
-            // ����on_machine_pos = 0
-            on_machine_pos_vec[curr_op] = 0;
-        }
-        else
-        {
-            int pre_machine_op = last_machine_operation[curr_machine];
-            last_machine_operation[curr_machine] = curr_op;
-            machine_successor[pre_machine_op] = curr_op;
-            machine_predecessor[curr_op] = pre_machine_op;
-            // ����on_machine_posΪ��ǰ��������������һ����0��ʼ��
-            on_machine_pos_vec[curr_op] = machine_operation_count[curr_machine] - 1;
-        }
         machine_assigned_ops[curr_machine]++;
+        append_assignment_to_graph(curr_op, curr_machine, curr_worker);
         // �����ǰ�����ǹ��������һ������,����Ӻ�ѡ�����������Ƴ�
         const auto index_it = std::find(candidates.begin(), candidates.end(), curr_op);
         if (index_it == candidates.end())
