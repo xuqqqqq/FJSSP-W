@@ -4,7 +4,9 @@
 
 #ifndef FJSP_TABUSEARCH_H
 #define FJSP_TABUSEARCH_H
+#include <algorithm>
 #include <atomic>
+#include <cstddef>
 #include "NeighborhoodMove.h"
 #include "Schedule.h"
 #include "TabuList.h"
@@ -33,6 +35,20 @@ public:
         tabu_list(instance.machine_num), L(10 + instance.job_num / instance.machine_num),
         L_max(instance.job_num <= 2 * instance.machine_num ? static_cast<int>(L * 1.4) : static_cast<int>(L * 1.5))
     {
+        int candidate_count = 0;
+        for (const auto& job : instance.jobs)
+        {
+            for (const auto& operation : job)
+            {
+                candidate_count += static_cast<int>(operation.size());
+            }
+        }
+        const double relative_machine_flexibility = static_cast<double>(candidate_count) /
+            std::max(1, instance.op_num * instance.machine_num);
+        const bool tighten_worker_probe_shortlists =
+            instance.has_worker_flexibility && instance.op_num >= 250 && relative_machine_flexibility >= 0.45;
+        worker_change_shortlist_size = tighten_worker_probe_shortlists ? 1u : 2u;
+        worker_change_strong_shortlist_size = tighten_worker_probe_shortlists ? 2u : 3u;
     }
 
     void search(const Schedule& schedule, const std::atomic<bool>& stop_flag);
@@ -49,6 +65,8 @@ private:
     TabuList tabu_list;
     int L;
     int L_max;
+    size_t worker_change_shortlist_size{2};
+    size_t worker_change_strong_shortlist_size{3};
 
     void change_machine_evaluate_and_push(const Schedule& schedule, const NeighborhoodMove& move,
         const std::vector<int>& intersection,

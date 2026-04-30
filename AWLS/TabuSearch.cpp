@@ -24,8 +24,6 @@ constexpr bool kEnablePrefixFrontMoves = true;
 constexpr bool kEnableFrontToBackMoves = false;
 constexpr bool kEnableWorkerChangeNeighborhood = true;
 constexpr bool kEnableChangeMachineNeighborhood = true;
-constexpr size_t kWorkerChangeShortlistSize = 2;
-constexpr size_t kWorkerChangeStrongSignalShortlistSize = 3;
 constexpr unsigned long long kMaxTabuIterationsPerPass = 5000;
 
 bool should_stop_search(const std::atomic<bool>* stop_flag)
@@ -748,8 +746,8 @@ NeighborhoodMove TabuSearch::find_move(const std::atomic<bool>* stop_flag)
                         machine_block_worker_probe[op] = 1;
                         const size_t shortlist_size =
                             has_strong_alternative && !is_block_endpoint
-                            ? kWorkerChangeStrongSignalShortlistSize
-                            : kWorkerChangeShortlistSize;
+                            ? worker_change_strong_shortlist_size
+                            : worker_change_shortlist_size;
                         const auto shortlist = collect_worker_shortlist(
                             current_schedule, op, machine_id, current_worker, shortlist_size);
                         for (const int worker : shortlist)
