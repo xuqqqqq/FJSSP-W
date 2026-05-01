@@ -47,10 +47,15 @@ public:
             std::max(1, instance.op_num * instance.machine_num);
         const bool tighten_worker_probe_shortlists =
             instance.has_worker_flexibility && instance.op_num >= 250 && relative_machine_flexibility >= 0.45;
+        const bool broaden_worker_probe_shortlists =
+            instance.has_worker_flexibility && instance.op_num >= 100 && instance.op_num < 250 &&
+            relative_machine_flexibility >= 0.2;
         const bool tighten_machine_change_shortlists =
             instance.has_worker_flexibility && instance.op_num >= 250 && relative_machine_flexibility >= 0.2;
-        worker_change_shortlist_size = tighten_worker_probe_shortlists ? 1u : 2u;
-        worker_change_strong_shortlist_size = tighten_worker_probe_shortlists ? 2u : 3u;
+        worker_change_shortlist_size =
+            tighten_worker_probe_shortlists ? 1u : (broaden_worker_probe_shortlists ? 3u : 2u);
+        worker_change_strong_shortlist_size =
+            tighten_worker_probe_shortlists ? 2u : (broaden_worker_probe_shortlists ? 4u : 3u);
         machine_change_shortlist_size = tighten_machine_change_shortlists ? 2u : 0u;
         machine_change_position_shortlist_size = tighten_machine_change_shortlists ? 4u : 0u;
     }
