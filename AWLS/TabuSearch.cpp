@@ -1154,6 +1154,16 @@ void TabuSearch::make_move(const NeighborhoodMove& move)
         " which=", move.which, " where=", move.where);
     if (move.method == Method::CHANGE_WORKER)
     {
+        const int previous_worker =
+            move.which >= 0 && move.which < static_cast<int>(current_schedule.graph.on_worker.size())
+            ? current_schedule.graph.on_worker[move.which]
+            : -1;
+        if (enable_worker_tabu && move.which >= 0 &&
+            move.which < static_cast<int>(worker_tabu.size()) && previous_worker >= 0)
+        {
+            const unsigned long long tabu_time = iteration + RandomGenerator::instance().getInt(L, static_cast<int>(L_max));
+            worker_tabu[move.which].insert_or_assign(previous_worker, tabu_time);
+        }
         current_schedule.make_move(move);
         awls_trace::log("TabuSearch::make_move finish current=", current_schedule.get_makespan());
         return;
@@ -1219,7 +1229,16 @@ bool TabuSearch::is_tabu(const NeighborhoodMove& move, const int makespan) const
     }
     if (move.method == Method::CHANGE_WORKER)
     {
-        return false;
+        if (!enable_worker_tabu)
+        {
+            return false;
+        }
+        if (move.which < 0 || move.which >= static_cast<int>(worker_tabu.size()))
+        {
+            return false;
+        }
+        const auto it = worker_tabu[move.which].find(move.where);
+        return it != worker_tabu[move.which].end() && it->second >= iteration;
     }
     std::vector<int> new_op_sequence;
     int pos = 0;

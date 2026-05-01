@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
+#include <unordered_map>
 #include "NeighborhoodMove.h"
 #include "Schedule.h"
 #include "TabuList.h"
@@ -33,7 +34,8 @@ public:
 
     explicit TabuSearch(const Instance& instance) :
         tabu_list(instance.machine_num), L(10 + instance.job_num / instance.machine_num),
-        L_max(instance.job_num <= 2 * instance.machine_num ? static_cast<int>(L * 1.4) : static_cast<int>(L * 1.5))
+        L_max(instance.job_num <= 2 * instance.machine_num ? static_cast<int>(L * 1.4) : static_cast<int>(L * 1.5)),
+        worker_tabu(instance.op_num + 2)
     {
         int candidate_count = 0;
         for (const auto& job : instance.jobs)
@@ -52,6 +54,15 @@ public:
             relative_machine_flexibility >= 0.2;
         const bool tighten_machine_change_shortlists =
             instance.has_worker_flexibility && instance.op_num >= 250 && relative_machine_flexibility >= 0.2;
+        const bool dense_small_worker_case =
+            instance.has_worker_flexibility && instance.op_num <= 80 && instance.machine_num >= 10 &&
+            relative_machine_flexibility >= 0.45;
+        const bool medium_dense_machine_case =
+            instance.has_worker_flexibility && instance.op_num >= 180 && instance.op_num < 250 &&
+            instance.machine_num >= 10 && relative_machine_flexibility >= 0.4;
+        enable_worker_tabu =
+            instance.has_worker_flexibility && !dense_small_worker_case && !medium_dense_machine_case &&
+            instance.op_num < 250;
         worker_change_shortlist_size =
             tighten_worker_probe_shortlists ? 1u : (broaden_worker_probe_shortlists ? 3u : 2u);
         worker_change_strong_shortlist_size =
@@ -74,6 +85,8 @@ private:
     TabuList tabu_list;
     int L;
     int L_max;
+    std::vector<std::unordered_map<int, unsigned long long>> worker_tabu;
+    bool enable_worker_tabu{false};
     size_t worker_change_shortlist_size{2};
     size_t worker_change_strong_shortlist_size{3};
     size_t machine_change_shortlist_size{0};
